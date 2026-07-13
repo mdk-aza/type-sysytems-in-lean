@@ -17,11 +17,11 @@ def Context := List (String × Ty)
 def Context.lookup (ctx : Context) (name : String) : Option Ty :=
   ctx.findSome? (λ (n, ty) => if n == name then some ty else none)
 
-  mutual
+mutual
 
 def synthesize (ctx : Context) : Expr → Option Ty
-| .var x => ctx.lookup x
-| .anno e ty =>
+  | .var x => ctx.lookup x
+  | .anno e ty =>
       match check ctx e ty with
       | none => none
       | some _ => some ty
@@ -35,9 +35,9 @@ def synthesize (ctx : Context) : Expr → Option Ty
   | .unit | .lam .. => none
 
 def check (ctx : Context) : Expr → Ty → Option Unit
-| .unit, .unit => some ()
-| .lam x body, .arrow a1 a2 => check ((x, a1) :: ctx) body a2
-| e, targetTy =>
+  | .unit, .unit => some ()
+  | .lam x body, .arrow a1 a2 => check ((x, a1) :: ctx) body a2
+  | e, targetTy =>
       match synthesize ctx e with
       | some synthTy => if synthTy == targetTy then some () else none
       | none => none
@@ -88,6 +88,7 @@ end
 -- 「プログラム（def）が計算で成功を返したら、数学的ルール（Prop）を満たす」という証明。
 -- 項（Expr）の構造に関する帰納法で証明します。
 
+-- sizeOf に関する補助補題（各コンストラクタで、子項のサイズは全体より必ず小さい）
 theorem sizeOf_app_lt_left (e1 e2 : Expr) : sizeOf e1 < sizeOf (Expr.app e1 e2) := by
   simp [sizeOf, Expr._sizeOf_1]
   omega
@@ -96,8 +97,16 @@ theorem sizeOf_app_lt_right (e1 e2 : Expr) : sizeOf e2 < sizeOf (Expr.app e1 e2)
   simp [sizeOf, Expr._sizeOf_1]
   omega
 
-  mutual
-  -- 合成の健全性証明
+theorem sizeOf_lam_lt (x : String) (body : Expr) : sizeOf body < sizeOf (Expr.lam x body) := by
+  simp [sizeOf, Expr._sizeOf_1]
+  omega
+
+theorem sizeOf_anno_lt (e : Expr) (ty : Ty) : sizeOf e < sizeOf (Expr.anno e ty) := by
+  simp [sizeOf, Expr._sizeOf_1]
+  omega
+
+mutual
+-- 合成の健全性証明
 theorem synthesize_sound {ctx : Context} {e : Expr} {ty : Ty}
     (h_eval : synthesize ctx e = some ty) : Synth ctx e ty := by
     cases h_e_eq : e with
@@ -151,23 +160,16 @@ theorem synthesize_sound {ctx : Context} {e : Expr} {ty : Ty}
         apply Synth.anno_synth
         exact check_sound h_chk
 
--- //
 termination_by (sizeOf e, 0)
 decreasing_by
-all_goals simp_wf
-·
-    subst_vars
-    left
-    exact sizeOf_app_lt_left e1 e2
-·
-    subst_vars
-    left
-    exact sizeOf_app_lt_right e1 e2
-·
-    subst_vars
-    left
-    simp [sizeOf, Expr._sizeOf_1]
-    omega
+  all_goals simp_wf
+  all_goals (try rw [h_e_eq])
+  all_goals first
+    | (left; exact sizeOf_app_lt_left _ _)
+    | (left; exact sizeOf_app_lt_right _ _)
+    | (left; exact sizeOf_anno_lt _ _)
+    | (left; exact sizeOf_lam_lt _ _)
+    | (right; omega)
 
 
 -- 検査の健全性証明
@@ -229,21 +231,22 @@ theorem check_sound {ctx : Context} {e : Expr} {ty : Ty}
         apply Check.sub_check
         exact synthesize_sound h_syn
 
---
 termination_by (sizeOf e, 1)
 decreasing_by
-all_goals simp_wf
-all_goals subst_vars
-all_goals (
-    first
-    | (apply Prod.Lex.left
-       simp [sizeOf, Expr._sizeOf_1]
-       omega)
-    | (apply Prod.Lex.right
-       omega))
+  all_goals simp_wf
+  all_goals (try rw [h_e_eq])
+  all_goals first
+    | (left; exact sizeOf_app_lt_left _ _)
+    | (left; exact sizeOf_app_lt_right _ _)
+    | (left; exact sizeOf_anno_lt _ _)
+    | (left; exact sizeOf_lam_lt _ _)
+    | (right; omega)
+
+end
 
 
 -- 型の一意性の証明（パターンマッチング形式）
+-- ※ synthesize_sound / check_sound とは相互再帰していないので mutual の外に出す
 theorem synth_uniqueness {ctx : Context} {e : Expr} {ty1 ty2 : Ty}
     (h1 : Synth ctx e ty1) (h2 : Synth ctx e ty2) : ty1 = ty2 :=
   match h1, h2 with
@@ -264,5 +267,3 @@ theorem synth_uniqueness {ctx : Context} {e : Expr} {ty1 ty2 : Ty}
       have h_eq_func := synth_uniqueness h1f h2f
       -- (a → ty1) = (a_new → ty2) ならば ty1 = ty2
       injection h_eq_func
-
-end
