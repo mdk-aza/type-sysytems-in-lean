@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAPL 13.3.1 輪読会資料 完全版</title>
+
+    <!-- MathJax for rendering gorgeous math formulas and inference rules -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* Base Reset & Typography */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            line-height: 1.7;
+            color: #2d3748;
+            max-width: 840px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            background-color: #ffffff;
+        }
+
+        /* Academic Accents */
+        h1 {
+            color: #1a365d;
+            border-bottom: 3px solid #2b6cb0;
+            padding-bottom: 12px;
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            color: #2b6cb0;
+            border-left: 6px solid #2b6cb0;
+            padding-left: 12px;
+            margin-top: 45px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            color: #2d3748;
+            font-size: 16px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 4px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+
+        /* Lists */
+        ul, ol {
+            padding-left: 24px;
+            margin-bottom: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        li::marker {
+            color: #4299e1;
+        }
+
+        /* Highlighting */
+        strong {
+            color: #1a202c;
+            background: linear-gradient(transparent 70%, #ebf8ff 70%);
+            padding: 0 2px;
+        }
+
+        /* Customized Notes box */
+        .note {
+            background-color: #ebf8ff;
+            border-left: 5px solid #3182ce;
+            padding: 18px 20px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .note strong {
+            background: none;
+            color: #2b6cb0;
+            font-size: 1.05em;
+        }
+
+        /* GitHub Link Badge style */
+        .github-badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: #24292e;
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.88em;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+            margin-top: 8px;
+        }
+        .github-badge:hover {
+            background-color: #444d56;
+        }
+        .github-badge svg {
+            margin-right: 8px;
+            fill: currentColor;
+        }
+
+        /* Inline Code & Code Block Style */
+        code {
+            font-family: "JetBrains Mono", Consolas, Menlo, Monaco, "Courier New", monospace;
+            background-color: #f7fafc;
+            color: #e53e3e;
+            padding: 2px 6px;
+            border: 1px solid #edf2f7;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 18px;
+            overflow-x: auto;
+            font-family: "JetBrains Mono", Consolas, Menlo, Monaco, "Courier New", monospace;
+            font-size: 0.88em;
+            line-height: 1.5;
+            margin: 20px 0;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        /* Syntax Highlighting for Lean Block */
+        pre code {
+            color: inherit;
+            background-color: transparent;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+        }
+        .keyword { color: #805ad5; font-weight: bold; }
+        .type { color: #3182ce; }
+        .comment { color: #718096; font-style: italic; }
+        .constructor { color: #dd6b20; font-weight: 500; }
+        .symbol { color: #4a5568; font-weight: bold; }
+
+        /* Math Blocks override */
+        .formula-display {
+            padding: 12px 0;
+            margin: 15px 0;
+            background-color: #fafbfc;
+            border-radius: 6px;
+            border: 1px solid #edf2f7;
+        }
+
+        /* Divider */
+        hr {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 40px 0;
+        }
+
+        /* Page Break & Print Configurations */
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+                color: #000000;
+                font-size: 10.5pt;
+            }
+            h1 {
+                font-size: 20pt;
+                margin-bottom: 20pt;
+            }
+            h2 {
+                font-size: 14pt;
+                margin-top: 25pt;
+                page-break-after: avoid;
+            }
+            h3 {
+                font-size: 12pt;
+                page-break-after: avoid;
+            }
+            pre, .note {
+                page-break-inside: avoid;
+                border: 1px solid #cbd5e0;
+            }
+            code {
+                border: none;
+                background: none;
+            }
+            .github-badge {
+                display: none; /* Hide GitHub badges during print */
+            }
+            @page {
+                margin: 20mm 15mm;
+            }
+        }
+    </style>
+</head>
+<body class="tex2jax_process">
+
+<h1>TAPL 練習問題 13.3.1「ガベージコレクションのモデル化」輪読会資料</h1>
+
+<p style="text-align: center; margin-top: -15px; color: #718096; font-size: 0.95em;">
+    <strong>対象定理：</strong> 13.3.1 (5) 正しさの定理（(5)-(a) および (5)-(b) の無限メモリケース）<br>
+    <strong>検証ツール：</strong> Lean 4 (Mathlib 依存なし、Core のみで完全検証済み)<br>
+    <a class="github-badge" href="https://github.com/mdk-aza/type-sysytems-in-lean/blob/main/TypeSystemsInLean/TaPL/Chapter13/GcJa.lean" target="_blank">
+        <svg height="16" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHubで完全な検証コードを見る (GcJa.lean)
+    </a>
+</p>
+
+<hr>
+
+<h2>0. 前提知識：TAPL 13.3.1 (5) 「正しさの定理」とは</h2>
+
+<p>本演習では、通常の評価ステップ（ $\rightarrow$ ）に、いつでもヒープを回収できるGCステップ（ $\rightarrow_{gc}$ ）をちりばめた合成評価関係 $\rightarrow_{gc}^{*} \ \overset{\text{def}}{=}\ (\rightarrow \ \cup \ \rightarrow_{gc})^{*}$ を定義する。</p>
+
+<p>このGCの導入が<strong>「プログラムの最終結果に影響を与えないこと（正しさ）」</strong>を証明するため、以下の 2 方向の定理 (5) の検証を行う。</p>
+
+<h3>(5)-(a) ：GCあり評価 $\Rightarrow$ GCなし評価（健全性）</h3>
+<ul>
+    <li><strong>主張：</strong> $t \mid \mu \rightarrow_{gc}^{*}$ $t' \mid \mu''$ ならば、ある $\mu'$ が存在して $t \mid \mu \rightarrow^{*} t' \mid \mu'$ となる。</li>
+    <li><strong>ストアの条件：</strong> $\mu'$ は $\mu''$ を「拡張」する（ $\mu' \supseteq \mu''$、すなわち $\mu'$ の方が定義域が広く、共通部分では値が一致する）。</li>
+    <li><strong>意味：</strong> <strong>「GCを途中で挟んだ実行（ $\rightarrow_{gc}^{*}$ ）が最終状態に到達できるなら、GCを一切しない素の実行（ $\rightarrow^{*}$ ）でも全く同じ項 $t'$ に到達できる」</strong>という保証。</li>
+</ul>
+
+<h3>(5)-(b) ：GCなし評価 $\Rightarrow$ GCあり評価（完全性／メモリ安全ケース）</h3>
+<ul>
+    <li><strong>主張：</strong> $t \mid \mu \rightarrow^{*} t' \mid \mu'$ ならば、次のいずれかが成り立つ。
+        <ul>
+            <li><strong>i. （通常ケース）</strong> ある $\mu''$ が存在して $t \mid \mu \rightarrow_{gc}^{*}$ $t' \mid \mu''$ となる（ $\mu'$ は $\mu''$ を拡張する）。</li>
+            <li><strong>ii. （メモリ枯渇ケース）</strong> 評価の途中で利用可能な位置が残っておらず、メモリを使い果たす。</li>
+        </ul>
+    </li>
+    <li><strong>意味：</strong> <strong>「GCなしで実行できるプログラムは、GCありの世界でも（メモリが枯渇しない限り）同じ結果 $t'$ を得られる」</strong>という保証。</li>
+    <li>💡 <strong>本形式化での扱い：</strong> メモリ位置の集合 $L$ を $\mathbb{N}$ 全体（無限メモリ）とすれば、この (ii) のメモリ枯渇ケースは自動的に回避されるため、本形式化では (i) のケースのみに集中して証明を行う。</li>
+</ul>
+
+<hr>
+
+<h2>1. イントロダクション：本モデル化における重要アプローチ</h2>
+
+<p>本形式化（Lean 4コード）では、上記定理を完全に検証するために以下のアプローチをとっている。</p>
+
+<ol>
+    <li><strong>到達可能性（Reachability）の定義の修正</strong><br>
+        到達可能性の定義において、「項に直接現れる位置（ <code>locations t</code> ）」だけで根（Roots）を定義し、そこからポインタを辿る推移閉包（1歩、2歩と先を追う <code>step</code> 規則）を入れ忘れると、<strong>「生存しているオブジェクトから参照されている（＝必要な）オブジェクトが、誤って解放されるバグ」</strong>が発生する。今回の形式化ではこれを <code>inductive ReachableFrom</code> として正しく定式化し、必要なオブジェクトが全て残るようにしている。</li>
+    <li><strong>無限メモリの採用</strong><br>
+        ストアの位置集合を <code>Nat</code> 全体（無限メモリ）としてモデル化することで、(5)-(b)-ii のメモリ枯渇ケースを自動的に回避している。</li>
+    <li><strong>割り当てカウンタ（ <code>n : Nat</code> ）の導入</strong><br>
+        GCありの実行とGCなしの実行で、<strong>「物理的に全く同じ位置（Location）」に新規割り当てが行われること</strong>を保証するため、状態に単調増加するカウンタ <code>n</code> を持たせている。</li>
+</ol>
+
+<hr>
+
+<h2>2. 構文とストア（ヒープ）の定式化</h2>
+
+<h3>構文の定義（de Bruijn 添字）</h3>
+<p>項（ <code>Term</code> ）は通常の $\lambda$ 計算に加えて、実行時のみに現れる位置 <code>loc l</code>、および参照生成 <code>ref t</code>、デリファレンス <code>!t</code>、代入 <code>t1 := t2</code> を持つ。</p>
+<p>
+    <a class="github-badge" href="https://github.com/mdk-aza/type-sysytems-in-lean/blob/main/TypeSystemsInLean/TaPL/Chapter13/GcJa.lean#L42-L53" target="_blank">
+        <svg height="16" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHubで構文の定義コードを見る
+    </a>
+</p>
+
+<pre><code class="language-lean"><span class="keyword">inductive</span> <span class="type">Term</span> <span class="keyword">where</span>
+  <span class="symbol">|</span> <span class="constructor">var</span>    <span class="symbol">:</span> <span class="type">Nat</span> <span class="symbol">&rarr;</span> <span class="type">Term</span>
+  <span class="symbol">|</span> <span class="constructor">abs</span>    <span class="symbol">:</span> <span class="type">Term</span> <span class="symbol">&rarr;</span> <span class="type">Term</span>
+  <span class="symbol">|</span> <span class="constructor">app</span>    <span class="symbol">:</span> <span class="type">Term</span> <span class="symbol">&rarr;</span> <span class="type">Term</span> <span class="symbol">&rarr;</span> <span class="type">Term</span>
+  <span class="symbol">|</span> <span class="constructor">unit</span>   <span class="symbol">:</span> <span class="type">Term</span>
+  <span class="symbol">|</span> <span class="constructor">loc</span>    <span class="symbol">:</span> <span class="type">Nat</span> <span class="symbol">&rarr;</span> <span class="type">Term</span>        <span class="comment">-- 実行時のみ現れるストア位置</span>
+  <span class="symbol">|</span> <span class="constructor">ref</span>    <span class="symbol">:</span> <span class="type">Term</span> <span class="symbol">&rarr;</span> <span class="type">Term</span>
+  <span class="symbol">|</span> <span class="constructor">deref</span>  <span class="symbol">:</span> <span class="type">Term</span> <span class="symbol">&rarr;</span> <span class="type">Term</span>
+  <span class="symbol">|</span> <span class="constructor">assign</span> <span class="symbol">:</span> <span class="type">Term</span> <span class="symbol">&rarr;</span> <span class="type">Term</span> <span class="symbol">&rarr;</span> <span class="type">Term</span></code></pre>
+
+<h3>到達可能性（Reachability）の定義</h3>
+<p>項 $t$ からストア $\mu$ を通じて到達可能な位置の集合を、以下のインダクティブな規則（Base + Step）で定義する。</p>
+<ul>
+    <li><strong>Base規則：</strong> 項 $t$ に文字通り出現する位置（ <code>locations t</code> ）は、すべて到達可能（根）。</li>
+    <li><strong>Step規則：</strong> すでに到達可能な位置 $l$ に書き込まれている値の中に位置 $l'$ が出現するなら（ $l' \in locOf \ \mu \ l$ ）、 $l'$ も到達可能。</li>
+</ul>
+
+<hr>
+
+<h2>3. ガベージコレクション（E-GC）と評価規則</h2>
+
+<h3>GCの定義 (<code>GCStep</code>)</h3>
+<p>規則 (E-GC) 「 $\mu'$ は $\mu$ を $reachable(t, \mu)$ に制限したものである」を、以下の2つの論理式で厳密に表現する。</p>
+<ol>
+    <li>$l \in dom(\mu') \iff l \in dom(\mu) \land Reachable(t, \mu, l)$</li>
+    <li>$l \in dom(\mu') \implies \mu'(l) = \mu(l)$</li>
+</ol>
+
+<h3>評価規則 (<code>Step</code> と <code>CombinedStep</code>)</h3>
+<ul>
+    <li><code>Step</code> : 通常の 1 ステップ評価（ <code>ref v</code> はカウンタ <code>n</code> を消費して <code>alloc</code> し、 <code>n+1</code> に進む）。</li>
+    <li><code>CombinedStep</code> : 通常のステップ <code>Step</code> と、項とカウンタを変えずにヒープを縮小する <code>GCStep</code> の<strong>いずれか</strong>を踏む 1 ステップ（ $\rightarrow \ \cup \ \rightarrow_{gc}$ ）。</li>
+</ul>
+
+<hr>
+
+<h2>4. 最重要の概念：「Safe」関係</h2>
+
+<p>本形式化の証明を成功させている最大の功績は、２つのストアの間に定義された <strong><code>Safe t n A B</code></strong> という不変条件（Invariant）である。</p>
+
+<div class="note">
+    <strong><code>Safe t n A B</code> の意味：</strong><br>
+    ストア <code>B</code> は、項 <code>t</code> に対して「安全に（一部または完全に）GCされた」ストア <code>A</code> の部分ストアである。
+</div>
+
+<p>この関係は以下の 5 つの条件から成り立つ：</p>
+<ol>
+    <li><strong><code>Bounded n A</code></strong> : ストア <code>A</code> の位置はすべてカウンタ <code>n</code> 未満（ <code>n</code> 以降は未使用）。</li>
+    <li><strong><code>dom B &sube; dom A</code></strong> : <code>B</code> は <code>A</code> の一部。</li>
+    <li><strong><code>locations t &sube; dom B</code></strong> : 項 <code>t</code> が今すぐ必要とする位置はすべて <code>B</code> に残っている。</li>
+    <li><strong>自己閉包性（Self-closed）</strong> : <code>B</code> の中からポインタを辿っても、絶対に <code>B</code> の外に飛び出さない。</li>
+    <li><strong>値の一致</strong> : <code>B</code> に残っている位置の値は、すべて <code>A</code> での値と完全に一致する。</li>
+</ol>
+
+<h3>局所性の補題：なぜ <code>Safe</code> が重要なのか？</h3>
+<p>通常の評価ステップ（ <code>Step</code> ）は、<strong>「現在評価中の項に書かれている位置」の範囲内しか触らない（局所性）</strong>という性質がある。そのため、以下が成り立つ。</p>
+<ul>
+    <li><strong><code>Safe.lift</code> (Up補題)</strong> : 小さい（GC済みの）ストア <code>B</code> が動けるなら、大きいストア <code>A</code> も全く同じステップを踏めて、結果もまた <code>Safe</code> になる。</li>
+    <li><strong><code>Safe.down</code> (Down補題)</strong> : 大きいストア <code>A</code> が動けるなら、安全な部分ストア <code>B</code> も全く同じステップを踏める。</li>
+</ul>
+
+<hr>
+
+<h2>5. 定理 13.3.1(5) の証明</h2>
+
+<h3>(5)-(a) の証明：GCあり $\Rightarrow$ GCなし</h3>
+<p><strong>【証明のあらすじ】</strong></p>
+<ol>
+    <li>初期状態 <code>(t, n, &mu;)</code> は、自分自身に対して自明に <code>Safe t n &mu; &mu;</code> である（ <code>Safe.refl</code> ）。</li>
+    <li>GCありの多段階評価（ <code>CombinedStar</code> ）に対して、 <code>Safe.lift</code> を使って 1 ステップずつ大きいストア側へ持ち上げる（ <code>CombinedStar.safe_lift</code> ）。
+        <ul>
+            <li>通常ステップの時：大きいストア側でも全く同じステップを追随する。</li>
+            <li><strong>GCステップの時：</strong> 大きいストア側は<strong>一歩も動かない（ <code>StepStar.refl</code> ）</strong>。なぜならGCは大きい側にとっては「透過的（見えない）」だからである。</li>
+        </ul>
+    </li>
+    <li>最終的に目的地 <code>t'</code> に到達したとき、 <code>Safe</code> の条件 2 と 5 から、大きい側のストア $\mu'$ が小さい側のストア $\mu''$ を正しく拡張している（ <code>Extends</code> ）ことが従う。</li>
+</ol>
+
+<h3>(5)-(b) の証明：GCなし $\Rightarrow$ GCあり（メモリ安全ケース）</h3>
+<p><strong>【証明のあらすじ】</strong></p>
+<ul>
+    <li>無限メモリのモデル（ <code>Nat</code> ）を採用しているため、メモリ枯渇は起きない。</li>
+    <li>したがって、「一度も <code>GCStep</code> を挟まない実行」それ自体が、立派な <code>CombinedStar</code>（GCあり側のトラック）の実行例になる。</li>
+    <li>$\mu'' := \mu'$ と置くことで、自明に定理が成り立つ。</li>
+</ul>
+
+</body>
+</html>
