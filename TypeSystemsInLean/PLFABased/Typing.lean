@@ -353,6 +353,13 @@ HasType を
 notation:50 Γ " ⊢ " t " : " A =>
   HasType Γ t A
 
+theorem lookup_nil
+    {x : Index}
+    {A : Ty} :
+    ¬ Lookup [] x A := by
+  intro h
+  cases h
+
 ------------------------------------------------------------
 -- Examples
 ------------------------------------------------------------
