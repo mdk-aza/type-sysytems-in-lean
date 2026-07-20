@@ -87,32 +87,5 @@ prefix:60 "ƛ " => Term.lam
 /-- Application notation (t □ u). -/
 infixl:70 " □ " => Term.ap
 
-/--
-Values of the STLC.
-
-Only lambda abstractions are values.
--/
-
-/-
-【PLFA対応】
-
-値 (Value) の定義。
-
-STLC では λ抽象のみを値とする。
-
-    v ::= λ.t
-
-変数や関数適用は値ではない。
-
-この定義は Progress の証明で利用される。
--/
-
-
-inductive Value : Term → Prop where
-| VLam :
-    ∀ {t},
-    Value (ƛ t)
-
-open Value
 
 end STLC
