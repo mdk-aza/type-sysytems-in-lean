@@ -209,10 +209,10 @@ PLFA DeBruijn 章および Substitution 章で
 Lean では可読性を高めるため、
 専用の演算子 `∘r` として定義する。
 -/
-def comp (ρ₂ ρ₁ : Renaming) : Renaming :=
+def compose (ρ₂ ρ₁ : Renaming) : Renaming :=
   fun x => ρ₂ (ρ₁ x)
 
-infixr:90 " ∘r " => comp
+infixr:90 " ∘r " => compose
 
 ------------------------------------------------------------
 -- Renaming
@@ -264,9 +264,11 @@ def rename (ρ : Renaming) : Term → Term
 | .lam t =>
     -- Enter a binder.
     -- Extend the renaming before recurring.
+    -- Extend a renaming underneath a binder.
     --
     -- ラムダ抽象へ入るので
     -- リネームを1段拡張する。
+    -- binder の下へ降りる
     .lam (rename (ext ρ) t)
 
 | .ap t u =>

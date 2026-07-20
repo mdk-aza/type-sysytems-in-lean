@@ -134,19 +134,19 @@ This lemma is used in the proof of `rename_subst`.
 
 `rename_subst` のラムダ抽象ケースで利用する。
 -/
-theorem exts_mapSubst
+theorem exts_renameSubst 
     (ρ : Renaming)
     (σ : Subst) :
-    exts (mapSubst ρ σ)
+    exts (renameSubst  ρ σ)
       =
-    mapSubst (ext ρ) (exts σ) := by
+    renameSubst  (ext ρ) (exts σ) := by
   funext x
   cases x with
   | zero =>
       rfl
 
   | succ n =>
-      simp [exts, mapSubst]
+      simp [exts, renameSubst ]
       -- rw [show ((σ n)⟪ρ⟫)⟪shift⟫ = (σ n)⟪shift ∘r ρ⟫ by
             -- simpa using (rename_comp (σ n) ρ shift)]
       -- rw [shift_ext]
@@ -184,7 +184,7 @@ theorem rename_subst :
       (σ : Subst)
       (ρ : Renaming),
       (t⟦σ⟧)⟪ρ⟫ =
-      t⟦mapSubst ρ σ⟧ := by
+      t⟦renameSubst  ρ σ⟧ := by
   intro t
   induction t with
   | var x =>
@@ -194,7 +194,7 @@ theorem rename_subst :
   | lam t ih =>
       intro σ ρ
       simp [subst, rename]
-      rw [exts_mapSubst]
+      rw [exts_renameSubst ]
       exact ih (exts σ) (ext ρ)
 
   | ap t u iht ihu =>

@@ -186,39 +186,67 @@ def subst (σ : Subst) : Term → Term
 /--
 Apply a renaming to every term produced by a substitution.
 
-This is the action of a renaming on substitutions.
+This operation lifts a renaming from terms to substitutions.
+
+If a substitution
+
+    σ : Index → Term
+
+maps each variable to a term, then `renameSubst ρ σ`
+maps each variable to the corresponding renamed term.
+
+This operation plays a central role in relating
+renaming and substitution, and is used in the proofs of
+
+    rename_subst
+    subst_comp
+    Substitution Lemma
 -/
 
 /-
 置換が生成する各項へリネームを適用する。
 
-つまり
+これはリネームを置換へ持ち上げる（lift）操作である。
+
+置換
+
+    σ : Index → Term
+
+が各変数を項へ写すとき，
+
+    renameSubst ρ σ
+
+は，各像にリネーム `ρ` を適用した
+新しい置換を生成する。
+
+概念的には
 
     σ
 
-    0 ↦ t₀
-    1 ↦ t₁
-    2 ↦ t₂
+    #0 ↦ t₀
+    #1 ↦ t₁
+    #2 ↦ t₂
 
-なら
+であれば
 
-    mapSubst ρ σ
+    renameSubst ρ σ
 
-    0 ↦ rename ρ t₀
-    1 ↦ rename ρ t₁
-    2 ↦ rename ρ t₂
+    #0 ↦ t₀⟪ρ⟫
+    #1 ↦ t₁⟪ρ⟫
+    #2 ↦ t₂⟪ρ⟫
 
 となる。
 
-Lean 実装では
+この操作は，リネームと置換の相互作用を記述する
+基本操作であり，
 
-* rename-subst
-* subst-comp
+    rename_subst
+    subst_comp
+    Substitution Lemma
 
-などの補題を自然に記述するための
-補助定義として用いる。
+などの証明で繰り返し利用される。
 -/
-def mapSubst (ρ : Renaming) (σ : Subst) : Subst :=
+def renameSubst (ρ : Renaming) (σ : Subst) : Subst :=
   fun x => (σ x)⟪ρ⟫
 
 ------------------------------------------------------------
@@ -226,10 +254,15 @@ def mapSubst (ρ : Renaming) (σ : Subst) : Subst :=
 ------------------------------------------------------------
 
 /--
-Substitute a term for variable `#0`.
+The substitution used by β-reduction.
 
-Variables above `#0` are decremented because
-one binder disappears after β-reduction.
+(single v) replaces the most recently bound variable (#0)
+with `v` and shifts all remaining variables down by one,
+reflecting the removal of one binder.
+
+It realizes the β-rule
+
+    (ƛ t) □ v  ⟶  t⟦single v⟧
 -/
 
 /-
