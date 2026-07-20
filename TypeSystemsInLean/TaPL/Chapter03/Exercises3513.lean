@@ -1,0 +1,142 @@
+-- import TypeSystemsInLean.TaPL.Chapter03.Common
+--
+-- namespace TypeSystemsInLean.TaPL.Chapter03.Ex3513
+--
+-- open TypeSystemsInLean.TaPL.Chapter03
+-- open Term
+--
+-- /-!
+-- Exercise 3.5.13 (1):
+-- add E-FUNNY1:
+  -- if true then t2 else t3 --> t3
+-- -/
+-- namespace Funny1
+--
+-- inductive Step : Term → Term → Prop where
+  -- | base   : ∀ {t u}, Chapter03.Step t u → Step t u
+  -- | funny1 : ∀ {t2 t3}, Step (if_ tru t2 t3) t3
+--
+-- def NormalForm (t : Term) : Prop := Chapter03.NormalForm Step t
+--
+-- /-- 3.5.4 determinacy fails. -/
+-- theorem not_deterministic :
+  -- ∃ t t1 t2, Step t t1 ∧ Step t t2 ∧ t1 ≠ t2 := by
+  -- refine ⟨if_ tru zero (succ zero), zero, succ zero, ?_, ?_, ?_⟩
+  -- · exact Step.base Chapter03.Step.ifTrue
+  -- · exact Step.funny1
+  -- · simp
+--
+-- /-- 3.5.7: values are normal forms -/
+-- theorem value_is_normal_form :
+  -- ∀ t, Value t → NormalForm t := by
+  -- intro t hv
+  -- intro h
+  -- rcases h with ⟨t', hs⟩
+  -- cases hv with
+  -- | tru =>
+      -- cases hs <;> try contradiction
+  -- | fls =>
+      -- cases hs <;> try contradiction
+  -- | num hnv =>
+      -- induction hnv with
+      -- | zero =>
+          -- cases hs <;> try contradiction
+      -- | succ hnv ih =>
+          -- cases hs with
+          -- | base h =>
+              -- cases h with
+              -- | succCong hs' =>
+                  -- -- reduce to inner term
+                  -- apply ih
+                  -- apply Exists.intro
+                  -- apply Step.base hs'
+              -- | _ =>
+                  -- contradiction
+--
+-- /-- 3.5.8 still fails -/
+-- theorem normal_form_not_value_exists :
+  -- ∃ t, NormalForm t ∧ ¬ Value t := by
+  -- refine ⟨succ tru, ?_, ?_⟩
+  -- · intro h
+    -- rcases h with ⟨t', hs⟩
+    -- cases hs <;> try contradiction
+  -- · intro hv
+    -- cases hv <;> try contradiction
+--
+-- /-- termination witness -/
+-- theorem example_terminates :
+  -- Chapter03.MultiStep Step (if_ tru zero (succ zero)) (succ zero) := by
+  -- apply Chapter03.MultiStep.trans
+  -- · exact Step.funny1
+  -- · exact Chapter03.MultiStep.refl
+--
+-- end Funny1
+--
+-- /-!
+-- Exercise 3.5.13 (2):
+-- add E-FUNNY2
+-- -/
+-- namespace Funny2
+--
+-- inductive Step : Term → Term → Prop where
+  -- | base   : ∀ {t u}, Chapter03.Step t u → Step t u
+  -- | funny2 :
+      -- ∀ {t1 t2 t2' t3},
+      -- Step t2 t2' →
+      -- Step (if_ t1 t2 t3) (if_ t1 t2' t3)
+--
+-- def NormalForm (t : Term) : Prop := Chapter03.NormalForm Step t
+--
+-- /-- determinacy fails -/
+-- theorem not_deterministic :
+  -- ∃ t t1 t2, Step t t1 ∧ Step t t2 ∧ t1 ≠ t2 := by
+  -- let t  := if_ tru (pred zero) fls
+  -- let t1 := pred zero
+  -- let t2 := if_ tru zero fls
+  -- refine ⟨t, t1, t2, ?_, ?_, ?_⟩
+  -- · simpa [t, t1] using Step.base Chapter03.Step.ifTrue
+  -- ·
+    -- have h : Step (pred zero) zero := Step.base Chapter03.Step.predZero
+    -- simpa [t, t2] using Step.funny2 h
+  -- · simp [t1, t2]
+--
+-- /-- values are still normal forms -/
+-- theorem value_is_normal_form :
+  -- ∀ t, Value t → NormalForm t := by
+  -- intro t hv
+  -- intro h
+  -- rcases h with ⟨t', hs⟩
+  -- cases hv with
+  -- | tru =>
+      -- cases hs <;> try contradiction
+  -- | fls =>
+      -- cases hs <;> try contradiction
+  -- | num hnv =>
+      -- induction hnv with
+      -- | zero =>
+          -- cases hs with
+          -- | base h => cases h
+      -- | succ hnv ih =>
+          -- cases hs with
+          -- | base h =>
+              -- cases h with
+              -- | succCong hs' =>
+                  -- apply ih
+                  -- apply Exists.intro
+                  -- apply Step.base hs'
+              -- | _ =>
+                  -- contradiction
+--
+-- /-- still fails -/
+-- theorem normal_form_not_value_exists :
+  -- ∃ t, NormalForm t ∧ ¬ Value t := by
+  -- refine ⟨succ tru, ?_, ?_⟩
+  -- · intro h
+    -- rcases h with ⟨t', hs⟩
+    -- cases hs <;> try contradiction
+  -- · intro hv
+    -- cases hv <;> try contradiction
+--
+-- end Funny2
+--
+-- end TypeSystemsInLean.TaPL.Chapter03.Ex3513

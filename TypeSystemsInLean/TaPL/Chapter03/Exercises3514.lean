@@ -1,0 +1,139 @@
+-- import TypeSystemsInLean.TaPL.Chapter03.Common
+--
+-- namespace TypeSystemsInLean.TaPL.Chapter03.Ex3514
+--
+-- open TypeSystemsInLean.TaPL.Chapter03
+-- open Term
+--
+-- /--
+-- Exercise 3.5.14:
+-- determinacy of one-step evaluation for arithmetic expressions.
+-- -/
+-- theorem step_deterministic :
+  -- ∀ {t t' t''}, Step t t' → Step t t'' → t' = t'' := by
+  -- intro t t' t'' h1
+  -- induction h1 generalizing t'' with
+  -- | ifTrue =>
+      -- intro h2
+      -- cases h2 with
+      -- | ifTrue => rfl
+      -- | ifFalse => contradiction
+      -- | ifCong h => cases h
+      -- | succCong h => contradiction
+      -- | predZero => contradiction
+      -- | predSucc _ => contradiction
+      -- | predCong h => contradiction
+      -- | iszeroZero => contradiction
+      -- | iszeroSucc _ => contradiction
+      -- | iszeroCong h => contradiction
+--
+  -- | ifFalse =>
+      -- intro h2
+      -- cases h2 with
+      -- | ifTrue => contradiction
+      -- | ifFalse => rfl
+      -- | ifCong h => cases h
+      -- | succCong h => contradiction
+      -- | predZero => contradiction
+      -- | predSucc _ => contradiction
+      -- | predCong h => contradiction
+      -- | iszeroZero => contradiction
+      -- | iszeroSucc _ => contradiction
+      -- | iszeroCong h => contradiction
+--
+  -- | ifCong hstep ih =>
+      -- intro h2
+      -- cases h2 with
+      -- | ifTrue =>
+          -- cases hstep
+      -- | ifFalse =>
+          -- cases hstep
+      -- | ifCong hstep2 =>
+          -- simp [ih hstep2]
+      -- | succCong h => contradiction
+      -- | predZero => contradiction
+      -- | predSucc _ => contradiction
+      -- | predCong h => contradiction
+      -- | iszeroZero => contradiction
+      -- | iszeroSucc _ => contradiction
+      -- | iszeroCong h => contradiction
+--
+  -- | succCong hstep ih =>
+      -- intro h2
+      -- cases h2 with
+      -- | succCong hstep2 =>
+          -- simp [ih hstep2]
+      -- | _ =>
+          -- contradiction
+--
+  -- | predZero =>
+      -- intro h2
+      -- cases h2 with
+      -- | predZero => rfl
+      -- | predSucc hnv =>
+          -- cases hnv
+      -- | predCong h =>
+          -- cases h
+      -- | _ =>
+          -- contradiction
+--
+  -- | predSucc hnv =>
+      -- intro h2
+      -- cases h2 with
+      -- | predZero =>
+          -- cases hnv
+      -- | predSucc hnv2 =>
+          -- rfl
+      -- | predCong h =>
+          -- cases h
+      -- | _ =>
+          -- contradiction
+--
+  -- | predCong hstep ih =>
+      -- intro h2
+      -- cases h2 with
+      -- | predZero =>
+          -- cases hstep
+      -- | predSucc hnv =>
+          -- cases hstep
+      -- | predCong hstep2 =>
+          -- simp [ih hstep2]
+      -- | _ =>
+          -- contradiction
+--
+  -- | iszeroZero =>
+      -- intro h2
+      -- cases h2 with
+      -- | iszeroZero => rfl
+      -- | iszeroSucc hnv =>
+          -- cases hnv
+      -- | iszeroCong h =>
+          -- cases h
+      -- | _ =>
+          -- contradiction
+--
+  -- | iszeroSucc hnv =>
+      -- intro h2
+      -- cases h2 with
+      -- | iszeroZero =>
+          -- cases hnv
+      -- | iszeroSucc hnv2 =>
+          -- rfl
+      -- | iszeroCong h =>
+          -- cases h
+      -- | _ =>
+          -- -- contradiction
+--
+  -- | iszeroCong hstep ih =>
+      -- intro h2
+      -- cases h2 with
+      -- | iszeroZero =>
+          -- cases hstep
+      -- | iszeroSucc hnv =>
+          -- cases hstep
+      -- | iszeroCong hstep2 =>
+          -- simp [ih hstep2]
+      -- | _ =>
+          -- contradiction
+--
+-- end TypeSystemsInLean.TaPL.Chapter03.Ex3514

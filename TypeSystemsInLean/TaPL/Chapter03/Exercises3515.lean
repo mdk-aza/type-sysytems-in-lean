@@ -1,0 +1,61 @@
+-- import TypeSystemsInLean.TaPL.Chapter03.Common
+--
+-- namespace TypeSystemsInLean.TaPL.Chapter03.Ex3515
+--
+-- open TypeSystemsInLean.TaPL.Chapter03
+-- open Term
+--
+-- /-- stuckness for the Chapter 3 arithmetic language -/
+-- def stuck (t : Term) : Prop :=
+  -- Stuck Step t
+--
+-- theorem succ_true_not_value : ¬ Value (succ tru) := by
+  -- intro hv
+  -- cases hv with
+  -- | tru => contradiction
+  -- | fls => contradiction
+  -- | num hnv =>
+      -- cases hnv with
+      -- | zero => contradiction
+      -- | succ h =>
+          -- cases h
+--
+-- theorem succ_true_normal_form : NormalForm Step (succ tru) := by
+  -- intro h
+  -- rcases h with ⟨t', hs⟩
+  -- cases hs with
+  -- | succCong hs' =>
+      -- cases hs'
+  -- | _ =>
+      -- contradiction
+--
+-- theorem succ_true_stuck : stuck (succ tru) := by
+  -- constructor
+  -- · exact succ_true_normal_form
+  -- · exact succ_true_not_value
+--
+-- /--
+-- Another standard stuck example.
+-- -/
+-- theorem if_zero_then_stuck :
+  -- stuck (if_ zero tru fls) := by
+  -- constructor
+  -- ·
+    -- intro h
+    -- rcases h with ⟨t', hs⟩
+    -- cases hs with
+    -- | ifTrue => contradiction
+    -- | ifFalse => contradiction
+    -- | ifCong hs' =>
+        -- cases hs'
+    -- | _ =>
+        -- contradiction
+  -- ·
+    -- intro hv
+    -- cases hv with
+    -- | tru => contradiction
+    -- | fls => contradiction
+    -- | num hnv =>
+        -- cases hnv
+--
+-- end TypeSystemsInLean.TaPL.Chapter03.Ex3515
