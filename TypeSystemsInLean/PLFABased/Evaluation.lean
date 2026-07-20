@@ -199,6 +199,15 @@ Reduction notation.
 -/
 infix:40 " ⟶ " => Step
 
+@[simp]
+theorem value_not_step
+    {v t}
+    (hv : Value v) :
+    ¬ Step v t := by
+  intro hs
+  cases hv with
+  | lam =>
+      cases hs
 ------------------------------------------------------------
 -- Examples
 ------------------------------------------------------------

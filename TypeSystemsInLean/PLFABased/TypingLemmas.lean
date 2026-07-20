@@ -3,6 +3,7 @@ import TypeSystemsInLean.PLFABased.Rename
 
 namespace STLC
 
+
 /--
 Weakening for variable lookup.
 
@@ -211,5 +212,33 @@ theorem rename_preserves
       exact HasType.ap
         (ih₁ hρ)
         (ih₂ hρ)
+
+
+/--
+Shifting preserves typing.
+
+Weakening a typing context and shifting every free variable
+preserves typing.
+-/
+
+/-
+shift は型付けを保存する。
+
+型環境へ新しい束縛を追加し、
+自由変数を1つシフトしても
+型付けは保存される。
+
+これは extTypedSubstitution の証明で利用する。
+-/
+theorem shift_preserves
+    {Γ : Context}
+    {t : Term}
+    {A B : Ty}
+    (ht : HasType Γ t A) :
+    HasType (B :: Γ) (t⟪shift⟫) A := by
+  apply rename_preserves
+  · intro x T h
+    exact lookup_weaken h
+  · exact ht
 
 end STLC
