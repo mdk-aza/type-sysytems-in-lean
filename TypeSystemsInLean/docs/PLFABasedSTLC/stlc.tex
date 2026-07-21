@@ -1,0 +1,115 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage{mathpartir}
+\usepackage{geometry}
+
+\geometry{margin=25mm}
+
+\title{Simply Typed Lambda Calculus}
+\author{}
+\date{}
+
+\begin{document}
+
+    \maketitle
+
+    \section{Syntax}
+
+    \subsection{Types}
+
+    \[
+        A,B ::= \iota \mid A \rightarrow B
+    \]
+
+    where
+
+    \begin{itemize}
+        \item $\iota$ is the base type.
+        \item $A \rightarrow B$ is the function type.
+    \end{itemize}
+
+    \subsection{Terms}
+
+    \[
+        t ::= x
+        \mid \lambda.t
+        \mid t\;t
+    \]
+
+    Variables are represented using de Bruijn indices.
+
+    \section{Typing Rules}
+
+    Typing judgement
+
+    \[
+        \Gamma \vdash t : A
+    \]
+
+    \begin{mathpar}
+
+        \inferrule*[right=T-Var]
+        {\Gamma(x)=A}
+        {\Gamma \vdash x : A}
+
+        \inferrule*[right=T-Lam]
+        {\Gamma,A \vdash t:B}
+        {\Gamma \vdash \lambda.t : A \rightarrow B}
+
+        \inferrule*[right=T-App]
+        {\Gamma \vdash t : A \rightarrow B \\
+        \Gamma \vdash u : A}
+        {\Gamma \vdash t\,u : B}
+
+    \end{mathpar}
+
+    \section{Operational Semantics}
+
+    Evaluation judgement
+
+    \[
+        t \longrightarrow t'
+    \]
+
+    Values
+
+    \[
+        v ::= \lambda.t
+    \]
+
+    \begin{mathpar}
+
+        \inferrule*[right=E-AppAbs]
+        {}
+        {(\lambda.t)\;v \longrightarrow t[v]}
+
+        \inferrule*[right=E-App1]
+        {t_1 \longrightarrow t_1'}
+        {t_1\;t_2 \longrightarrow t_1'\;t_2}
+
+        \inferrule*[right=E-App2]
+        {t_2 \longrightarrow t_2'}
+        {v\;t_2 \longrightarrow v\;t_2'}
+
+    \end{mathpar}
+
+    \section{Metatheory}
+
+    The Lean formalization proves the following results.
+
+    \begin{itemize}
+        \item Rename
+        \item Substitution
+        \item Progress
+        \item Preservation
+        \item Soundness
+    \end{itemize}
+
+    The final theorem is:
+
+    \[
+        \text{Well-typed programs do not get stuck.}
+    \]
+
+\end{document}

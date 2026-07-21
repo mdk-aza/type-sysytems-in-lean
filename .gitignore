@@ -1,2 +1,6 @@
 /.lake*
 TypeSystemsInLean/TaPL/Chapter13/explanation.html
+*.synctex.gz
+*.log
+*.aux
+*.pdf
