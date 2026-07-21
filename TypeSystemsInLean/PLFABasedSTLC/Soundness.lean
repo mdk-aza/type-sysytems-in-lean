@@ -1,7 +1,7 @@
-import TypeSystemsInLean.PLFABased.Typing
-import TypeSystemsInLean.PLFABased.Evaluation
-import TypeSystemsInLean.PLFABased.Preservation
-import TypeSystemsInLean.PLFABased.Progress
+import TypeSystemsInLean.PLFABasedSTLC.Typing
+import TypeSystemsInLean.PLFABasedSTLC.Evaluation
+import TypeSystemsInLean.PLFABasedSTLC.Preservation
+import TypeSystemsInLean.PLFABasedSTLC.Progress
 
 namespace STLC
 

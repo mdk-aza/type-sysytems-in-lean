@@ -1,6 +1,6 @@
-import TypeSystemsInLean.PLFABased.Typing
-import TypeSystemsInLean.PLFABased.SubstitutionLemma
-import TypeSystemsInLean.PLFABased.Evaluation
+import TypeSystemsInLean.PLFABasedSTLC.Typing
+import TypeSystemsInLean.PLFABasedSTLC.SubstitutionLemma
+import TypeSystemsInLean.PLFABasedSTLC.Evaluation
 
 /-!
 # Preservation

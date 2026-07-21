@@ -1,5 +1,5 @@
-import TypeSystemsInLean.PLFABased.Typing
-import TypeSystemsInLean.PLFABased.Rename
+import TypeSystemsInLean.PLFABasedSTLC.Typing
+import TypeSystemsInLean.PLFABasedSTLC.Rename
 
 namespace STLC
 

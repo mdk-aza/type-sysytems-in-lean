@@ -1,5 +1,5 @@
-import TypeSystemsInLean.PLFABased.Typing
-import TypeSystemsInLean.PLFABased.Evaluation
+import TypeSystemsInLean.PLFABasedSTLC.Typing
+import TypeSystemsInLean.PLFABasedSTLC.Evaluation
 
 /-!
 # Progress

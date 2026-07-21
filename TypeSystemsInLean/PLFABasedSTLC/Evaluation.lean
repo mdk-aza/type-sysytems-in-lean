@@ -1,5 +1,5 @@
-import TypeSystemsInLean.PLFABased.Syntax
-import TypeSystemsInLean.PLFABased.Substitution
+import TypeSystemsInLean.PLFABasedSTLC.Syntax
+import TypeSystemsInLean.PLFABasedSTLC.Substitution
 
 /-!
 # Evaluation

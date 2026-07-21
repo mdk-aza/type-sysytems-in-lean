@@ -1,7 +1,5 @@
-import TypeSystemsInLean.PLFABased.Substitution
-import TypeSystemsInLean.PLFABased.TypingLemmas
-import TypeSystemsInLean.PLFABased.TypingLemmas
-
+import TypeSystemsInLean.PLFABasedSTLC.Substitution
+import TypeSystemsInLean.PLFABasedSTLC.TypingLemmas
 /-!
 # Substitution Lemma
 

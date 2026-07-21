@@ -1,5 +1,5 @@
 import Mathlib.Data.String.Basic
-import TypeSystemsInLean.PLFABased.Syntax
+import TypeSystemsInLean.PLFABasedSTLC.Syntax
 
 namespace STLC
 

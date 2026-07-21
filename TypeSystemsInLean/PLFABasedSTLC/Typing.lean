@@ -1,4 +1,4 @@
-import TypeSystemsInLean.PLFABased.Syntax
+import TypeSystemsInLean.PLFABasedSTLC.Syntax
 
 /-!
 # Typing

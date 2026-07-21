@@ -1,5 +1,5 @@
-import TypeSystemsInLean.PLFABased.Syntax
-import TypeSystemsInLean.PLFABased.Rename
+import TypeSystemsInLean.PLFABasedSTLC.Syntax
+import TypeSystemsInLean.PLFABasedSTLC.Rename
 
 namespace STLC
 

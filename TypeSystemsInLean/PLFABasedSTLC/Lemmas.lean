@@ -1,6 +1,6 @@
-import TypeSystemsInLean.PLFABased.Syntax
-import TypeSystemsInLean.PLFABased.Rename
-import TypeSystemsInLean.PLFABased.Substitution
+import TypeSystemsInLean.PLFABasedSTLC.Syntax
+import TypeSystemsInLean.PLFABasedSTLC.Rename
+import TypeSystemsInLean.PLFABasedSTLC.Substitution
 
 /-!
 # Lemmas
