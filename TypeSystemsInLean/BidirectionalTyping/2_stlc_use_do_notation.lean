@@ -1,406 +1,406 @@
--- 型の定義: unit型 と 関数型(A -> B)
-inductive Ty where
-  | unit : Ty
-  -- これは「関数」の型を作るための設計図です。
-  -- 「引数の型（Ty）」と「戻り値の型（Ty）」の2つを渡すと、新しい「関数型（Ty）」を作ってくれます。
-  | arrow : Ty → Ty → Ty
-deriving DecidableEq, Repr
-
--- 項の定義 [cite: 53]
-inductive Expr where
-  | unit : Expr -- ()
-  | var : String → Expr -- 変数 x
-  -- 理論での姿: ラムダ抽象 $\lambda x. e$ （関数の定義）
-  -- 関数を作るための設計図です。
-  -- 1つ目の引数に「変数の名前（String）」、2つ目の引数に「関数の処理内容（Expr）」を渡すと、新しい「関数（Expr）」を作ってくれます。
-  | lam : String → Expr → Expr -- ラムダ抽象 λx. e
-  -- 理論での姿: 関数適用 $e_1\; e_2$ （関数の呼び出し・実行）
-  -- 解説: 関数を呼び出すための設計図です。
-  -- 1つ目の引数に「実行したい関数（Expr）」、2つ目に「渡す引数（Expr）」を渡すと、「関数を呼び出した結果（Expr）」を作ってくれます。
-  -- 具体例: 関数 $f$ に引数 $x$ を渡す処理は、Expr.app (Expr.var "f") (Expr.var "x") と表現します。
-  | app : Expr → Expr → Expr -- 関数適用 e1 e2
-  -- 理論での姿: 型アノテーション $(e : A)$解説: プログラムに「この項の型はこれだよ！」と明記するための設計図です。
-  -- 双方向型付けにおいて、「合成（推論）モード」と「検査モード」を切り替えるための超重要パーツです。
-  -- 1つ目に「中身の項（Expr）」、2つ目に「指定する型（Ty）」を渡します。
-  -- 具体例: Expr.anno Expr.unit Ty.unit と書くと、$( () : \text{unit} )$ という、型が明記された項になります。
-  | anno : Expr → Ty → Expr -- 型アノテーション (e : A)
-
--- 文脈は (変数名, 型) のリスト
-def Context := List (String × Ty)
-
--- 文脈から変数を探す
-def Context.lookup (ctx : Context) (name : String) : Option Ty :=
-  ctx.findSome? (λ (n, ty) => if n == name then some ty else none)
-
-  mutual
-
--- 型合成 (Synthesis: e ⇒ A)
--- (6) 型等価規則と方向転換（Sub / Anno）について和訳
--- (6) 最後に、型等価規則 TypeEq について考える。型割り当ての前提 $\Gamma \vdash e : A$ と結論 $\Gamma \vdash e : B$ が同一（$A$ と $B$ が完全に等しい）である場合、この同一の前提を複製することで、双方向システムにおいてそれぞれに異なる方向（モード）を与えることができる 。
--- (1) 結論を合成とし、前提を検査とするか、
--- (2) 結論を検査とし、前提を合成とするか、である 。
--- 選択肢(1)は実装できない。結論が $B$ を合成するということは $B$ が入力ではないことを意味し、$B$ が分からないということは検査のための $A$ も分からないからである 。
--- 選択肢(2)は機能する。結論において既知の $B$ に対して $e$ を検査したい場合、まず $e$ が型 $A$ を合成し、次に $A = B$ であることを検証すればよい 。
--- Sub$\Leftarrow$（方向転換）も Anno$\Rightarrow$（アノテーション）も、プログラムの実行上の機能には結びついていない 。
--- さらに、これらには対称性がある。
--- Sub$\Leftarrow$ は「検査の結論」から「合成の前提」へと移行し、Anno$\Rightarrow$ は「合成の結論」から「検査の前提」へと移行するからである 。
-
-def synthesize (ctx : Context) : Expr → Option Ty
-    | .var x => ctx.lookup x
-     -- | .anno e ty => if (check ctx e ty).isSome then some ty else none
-    | .anno e ty => do
-        check ctx e ty -- 失敗(none)ならここで自動的に return none される
-        return ty -- 成功したら ty を返す (some ty になる)
-
-    -- 【除去則 = 合成】 →E⇒
---     (5) 関数型の除去則 →E において、主判定（principal judgment）となるのは前提 $\Gamma \vdash e_1 : A \to B$ である 。
---     なぜなら、その前提がまさに除去される結合子（$\to$）を含んでいるからだ 。
---     我々はこの判定を合成（synthesize）モードにする 。
---     この選択は我々の「レシピ」が示唆するものであり、うまく機能する。
---     もし $e_1$ が $A \to B$ を合成できれば、$A$ が得られるので、引数 $e_2$ を $A$ で検査できる（したがって、このルールは $e_2$ が型を合成できない場合でも機能する）。
---     また $B$ も得られるので、結論において $B$ を合成することができる 。
--- （※前提の $e_1$ を検査モードにすることも可能ではあるが、その場合は引数 $e_2$ が合成モードでなければならず、結論も検査モードになる。詳細は6.5.1節を参照 。）
-
-    | .app e1 e2 => do
-        -- 1. e1 を合成し、結果が arrow 型なら a と b に分解。それ以外なら `none` を返す
-        let .arrow a b ← synthesize ctx e1 | none
-
-        -- 2. e2 を a で検査。失敗したらここで自動終了
-        check ctx e2 a
-
-        -- 3. 全て成功したら b を返す
-        return b
-    | .unit | .lam .. => none
-
--- 型検査 (Checking: e ⇐ A)
-def check (ctx : Context) : Expr → Ty → Option Unit
-    -- 【導入則 = 検査】 unitI⇐
-    -- (3) Unitの導入則
-    -- unitI は検査（checks）モードとする。
-    -- 本論文の現時点では、内部の一貫性を優先する。
-    -- つまり、() を検査することは、（次に議論する）関数型の導入則や、直積型（ペア）の導入則と一貫しているからである 。
-
-    | .unit, .unit => some ()
-
-    -- 【導入則 = 検査】 →I⇐
---     (4) 関数型（Arrow）の導入則 →I は検査モードとする。
--- この決定には明確な動機がある。$\lambda x.e$ に対して
---  $A_1 \to A_2$ を合成しようとすると、
---  本体 $e$ の型も合成しなければならなくなる 。
---  これには2つの問題がある。
--- 第一に、本体が合成することを要求すると、本体が「検査はできるが合成はできない」ようなラムダ式を処理するために、もう一つ別のルールが必要になってしまう 。
--- 第二に、$A_1 \to A_2$ を合成している最中は、まだ $A_1$ が何であるか分かっていないため、文脈を $\Gamma, x : A_1$ と拡張することができない 。（後で解決するためのプレースホルダーを文脈に入れる仕組みは第5章で述べる 。）
--- 結論を検査モードにすれば、すでに $A_2$ が分かっているため、前提でも $e$ をチェックすればよい 。
-
-    | .lam x body, .arrow a1 a2 =>
-        check ((x, a1) :: ctx) body a2
-
-    -- 【方向転換】 Sub⇐
-    -- 合成と検査の境界線。
-    | e, targetTy => do
-        -- 1. e から型を合成する (失敗した場合は自動的に none が返って終了)
-        let synthTy ← synthesize ctx e
-
-        -- 2. 合成された型 (synthTy) と目標型 (targetTy) が一致するか判定
-        if synthTy == targetTy then
-            return ()
-        else
-            none
-end
-
--- メモ1
--- 具体例を使って、もし「ラムダ式が型を合成する」というルールを作ってしまったらどうなるか、シミュレーションしてみましょう。
--- ❌ もしラムダ式を「合成モード（$\Rightarrow$）」にしたら？ラムダ式 \x. e 全体の型（$A \to B$）を合成（推論）したいとします 。
--- そのためには、中身の処理である本体 e の型 $B$ も合成できなければなりません 。ここで、2つのパターンのラムダ式を考えてみます。
--- パターン1：本体が合成できる場合例：\x. x
--- 本体は変数 x です。変数は文脈から型を引っ張ってくる（合成する）ことができるので、このラムダ式は型を合成できそうです。
--- パターン2：本体は合成できないが、検査ならできる場合例：\x. ()本体は ()（unit型の値）です。これまでの設計で、() は「外から目標型（unit）を与えられたときにだけOKを出す」という検査モード専用のルールにしていましたよね。
-
--- つまり、本体 () は単独では型を合成できません。するとどうなるでしょう？
--- パターン1を処理するためのルールに加えて、パターン2のような「本体が合成できず行き詰まってしまうラムダ式」を救済するために、
--- 「本体が検査モードならOKとするルール」をもう一つ別に追加で作らなければならなくなります 。
--- ⭕ だから「検査モード（$\Leftarrow$）」にするルールの数が増えるのは、美しくありませんし、実装も複雑になります。
--- そこで、Pfenningのレシピでは、ラムダ式全体を最初から**「検査モード（$\Leftarrow$）」**に固定してしまいます 。
--- ラムダ式は、必ず外側から「君は $A \to B$ という型になりなさい」と目標を与えられます。
--- 目標型が最初から分かっているので、本体 e に対して「君は $B$ という型になりなさい」と、そのまま目標を引き継いで検査させることができます 。
--- これなら、本体が x であろうと () であろうと、「目標型を与えて検査する」というたった1つのルールで、すべてのラムダ式を処理できるようになるのです 。
-
--- 💡 コーチのまとめこの一文は、「部品（本体）の特性に振り回されてルールを増やしてしまうくらいなら、
--- 最初から親（ラムダ式全体）を検査モードにして、目標型を上から下へ流し込んだほうが、ルールが1つで済んでスマートだよね」という設計思想を説明しています。\
-
-
--- メモ2
--- この部分は、双方向型付けの**「一番オイシイところ（2つのモードがどう連携するか）」**を語っている部分です。
--- 専門用語が多くて難しく見えますが、日常の「受付での本人確認」に例えると、驚くほどスッキリ理解できます！
--- まずは言葉のイメージを固めましょう。
--- 合成（$\Rightarrow$）＝ 本人に「あなたは誰ですか？」と聞いて、IDカード（型）を出してもらうこと。
--- 検査（$\Leftarrow$）＝ 受付で「あなたは〇〇さん（目標の型）ですね？」と指名して、合っているか確認すること。
-
--- 1. なぜ「選択肢(1)」はダメで、「選択肢(2)」はうまくいくのか？論文では、ルールを切り替えるときに「2つの選択肢」があったと言っています。
--- ❌ 選択肢(1)：結論が「合成」で、前提が「検査」状況: 受付で「あなたの名前（型）を教えてください」と聞かれている（結論が合成）。
--- 処理: その人の名前を推測するために、「とりあえず、あなたが『田中さん』かどうか確認（検査）させて！」と言う。
--- ダメな理由: 「いや、なんで急に田中さんが出てきたの？基準がないよ！」となりますよね。
--- 目標（ターゲット）がないのに検査はできないので、システムが立ち往生してしまいます。
-
--- ⭕ 選択肢(2)：結論が「検査」で、前提が「合成」状況: 受付で「あなたは『田中さん』ですね？」と確認されている（結論が検査）。
--- 処理: でも、パッと見で田中さんか分からない。そこで「とりあえず、あなたのIDカード（型）を見せてください」と頼む（前提が合成）。
--- 成功する理由: IDカードを見て「田中（合成した型 $A$）」と書いてあれば、受付のリスト「田中（目標の型 $B$）」と見比べて、「$A = B$ だからヨシ！」と確認できます。
--- これが、コードで実装した guard (synthTy == targetTy) の正体です。**「検査で迷ったら、相手にIDを出させて（合成）、合っているか見比べる」**という超実践的なテクニックだったのです。
-
--- 2. 「Sub（方向転換）」と「Anno（アノテーション）」の美しい対称性
--- さらに論文は、このシステムには「美しい対称性（表と裏の関係）」があると言っています。
--- 🔄 表ルート：Sub（方向転換）情報の流れ: 「検査」から「合成」へどういう時使う？:
---  「君は $B$ 型になりなさい！（検査）」と命令されたけど、その部品自体にどうやって検査すればいいかルールがない時。
---  アクション: 「じゃあ逆に、君自身は自分が何型だと思う？（合成）」と聞き出して、目標と一致するか照らし合わせます。
--- 🔄 裏ルート：Anno（型アノテーション）情報の流れ: 「合成」から「検査」へどういう時使う？:
--- 「君は何型なの？（合成）」と聞いたけど、複雑なプログラムすぎて自分では型を答えられない時。
--- アクション: プログラマが付けた名札 (e : A) を見て、「なるほど、君は $A$ 型と主張しているんだね。
--- じゃあ、中身が本当に $A$ 型のルールを守っているかチェック（検査）させてもらうよ」と動きます。
-
--- 💡 コーチのまとめ要するに、この段落が言いたかったのはこういうことです。
--- 「双方向型付けのシステムは、合成（抽出）と検査（確認）の2つのモードが、お互いに助け合うようにできている」
--- 目標があるのに確認方法が分からない時 ➡️ 対象自身に型を出させて比較する（Sub: 方向転換）
--- 目標がないのに型を聞き出さなきゃいけない時 ➡️ プログラマのメモ（名札）を信じて、それを目標として中身を確認する（Anno: アノテーション）
--- この「困ったら逆のモードにジャンプして助けを求める」という仕組みがあるおかげで、
--- 型チェッカーは行き止まりにならずに、どんなプログラムでもスルスルと型を判定していけるのです！
-
--- テスト1: 空の文脈で、() が unit型かチェックする
--- 期待される結果: some () （成功！）
-#eval check [] Expr.unit Ty.unit
-
--- テスト2: 空の文脈で、() が (unit -> unit)型かチェックする
--- 期待される結果: none （型エラー！）
-#eval check [] Expr.unit (Ty.arrow Ty.unit Ty.unit)
-
--- テスト3: 恒等関数 (λx. x) が (unit -> unit)型かチェックする
--- 期待される結果: some () （成功！）
-#eval check [] (Expr.lam "x" (Expr.var "x")) (Ty.arrow Ty.unit Ty.unit)
-
--- テスト4: (λx. x) () という関数適用が unit型を合成するか？
--- 期待される結果: some Ty.unit
-def idFunc := Expr.anno (Expr.lam "x" (Expr.var "x")) (Ty.arrow Ty.unit Ty.unit)
-#eval synthesize [] (Expr.app idFunc Expr.unit)
-
-
--- 【1. 数学的な推論規則（仕様）の定義】
--- 合成（Synth: Γ ⊢ e ⇒ A）と 検査（Check: Γ ⊢ e ⇐ A）
-
-mutual
--- 合成モードの規則 (Γ ⊢ e ⇒ A)
-inductive Synth : Context → Expr → Ty → Prop where
-    -- [Var⇒] 文脈から型が見つかれば、変数はその型を合成する
-    | var_synth {ctx : Context} {x : String} {ty : Ty} :
-        Context.lookup ctx x = some ty →
-        Synth ctx (Expr.var x) ty
-
-    -- [Anno⇒] アノテーションの中身が型Aとして検査をパスすれば、型Aを合成する
-    | anno_synth {ctx : Context} {e : Expr} {ty : Ty} :
-        Check ctx e ty →
-        Synth ctx (Expr.anno e ty) ty
-
-    -- [→E⇒] 関数適用 (e1 e2)
-    | app_synth {ctx : Context} {e1 e2 : Expr} {a b : Ty} :
-        Synth ctx e1 (Ty.arrow a b) → -- e1 が A → B を合成し
-        Check ctx e2 a → -- e2 が A で検査できるなら
-        Synth ctx (Expr.app e1 e2) b -- 全体は B を合成する
-
--- 検査モードの規則 (Γ ⊢ e ⇐ A)
-inductive Check : Context → Expr → Ty → Prop where
-    -- [UnitI⇐] () は unit型として検査できる
-    | unit_check {ctx : Context} :
-        Check ctx Expr.unit Ty.unit
-
-    -- [→I⇐] ラムダ抽象 (λx. e) は A → B として検査できる
-    | lam_check {ctx : Context} {x : String} {body : Expr} {a1 a2 : Ty} :
-        Check ((x, a1) :: ctx) body a2 → -- x:A を文脈に追加して本体を B で検査
-        Check ctx (Expr.lam x body) (Ty.arrow a1 a2)
-
-    -- [Sub⇐] 方向転換: もし e が型 A を合成でき、かつ目標型も A なら、検査成功
-    | sub_check {ctx : Context} {e : Expr} {ty : Ty} :
-        Synth ctx e ty →
-        Check ctx e ty
-end
-
-
--- 【2. 健全性（Soundness）の定理】
--- 「プログラム（def）が計算で成功を返したら、数学的ルール（Prop）を満たす」という証明。
--- 項（Expr）の構造に関する帰納法で証明します。
-
-theorem sizeOf_app_lt_left (e1 e2 : Expr) : sizeOf e1 < sizeOf (Expr.app e1 e2) := by
-  simp [sizeOf, Expr._sizeOf_1]
-  omega
-
-theorem sizeOf_app_lt_right (e1 e2 : Expr) : sizeOf e2 < sizeOf (Expr.app e1 e2) := by
-  simp [sizeOf, Expr._sizeOf_1]
-  omega
-
-  mutual
-  -- 合成の健全性証明
-theorem synthesize_sound {ctx : Context} {e : Expr} {ty : Ty}
-    (h_eval : synthesize ctx e = some ty) : Synth ctx e ty := by
-    cases h_e_eq : e with
-
-    | unit =>
-      rw [h_e_eq] at h_eval
-      unfold synthesize at h_eval
-      contradiction
-
-    | var x =>
-      rw [h_e_eq] at h_eval
-      apply Synth.var_synth
-      unfold synthesize at h_eval
-      exact h_eval
-
-    | lam x body =>
-      rw [h_e_eq] at h_eval
-      unfold synthesize at h_eval
-      contradiction
-
-    | app e1 e2 =>
-      rw [h_e_eq] at h_eval
-      revert h_eval
-      unfold synthesize
-      cases h_syn1 : synthesize ctx e1 with
-      | none => simp_all [bind, Option.bind]
-      | some ty1 =>
-        cases ty1 with
-        | unit => simp_all [bind, Option.bind]
-        | arrow a b =>
-          cases h_chk2 : check ctx e2 a with
-          | none => simp_all [bind, Option.bind]
-          | some _ =>
-            simp_all [bind, Option.bind]
-            intro h_eq_eval
-            cases h_eq_eval
-            apply Synth.app_synth
-            · exact synthesize_sound h_syn1
-            · exact check_sound h_chk2
-
-    | anno e' ty' =>
-      rw [h_e_eq] at h_eval
-      revert h_eval
-      unfold synthesize
-      cases h_chk : check ctx e' ty' with
-      | none => simp [bind, Option.bind]
-      | some _ =>
-        simp [bind, Option.bind]
-        intro h_eq_eval
-        cases h_eq_eval
-        apply Synth.anno_synth
-        exact check_sound h_chk
-
--- //
-termination_by (sizeOf e, 0)
-decreasing_by
-all_goals simp_wf
-·
-    subst_vars
-    left
-    exact sizeOf_app_lt_left e1 e2
-·
-    subst_vars
-    left
-    exact sizeOf_app_lt_right e1 e2
-·
-    subst_vars
-    left
-    simp [sizeOf, Expr._sizeOf_1]
-    omega
-
-
--- 検査の健全性証明
-theorem check_sound {ctx : Context} {e : Expr} {ty : Ty}
-    (h_eval : check ctx e ty = some ()) : Check ctx e ty := by
-    cases h_e_eq : e with
-
-    | unit =>
-      rw [h_e_eq] at h_eval
-      cases ty with
-      | unit => exact Check.unit_check
-      | arrow a b =>
-        unfold check at h_eval
-        simp_all [synthesize, bind, Option.bind]
-
-    | var x =>
-      rw [h_e_eq] at h_eval
-      unfold check at h_eval
-      cases h_syn : synthesize ctx (Expr.var x) with
-      | none => simp_all [bind, Option.bind]
-      | some synthTy =>
-        simp_all [bind, Option.bind]
-
-        subst h_eval
-
-        apply Check.sub_check
-        exact synthesize_sound h_syn
-
-    | lam x body =>
-      rw [h_e_eq] at h_eval
-      cases ty with
-      | unit =>
-        unfold check at h_eval
-        simp_all [synthesize, bind, Option.bind]
-      | arrow a1 a2 =>
-        apply Check.lam_check
-        unfold check at h_eval
-        exact check_sound h_eval
-
-    | app e1 e2 =>
-      rw [h_e_eq] at h_eval
-      unfold check at h_eval
-      cases h_syn : synthesize ctx (Expr.app e1 e2) with
-      | none => simp_all [bind, Option.bind]
-      | some synthTy =>
-        simp_all [bind, Option.bind]
-        subst h_eval
-        apply Check.sub_check
-        exact synthesize_sound h_syn
-
-    | anno e' ty' =>
-      rw [h_e_eq] at h_eval
-      unfold check at h_eval
-      cases h_syn : synthesize ctx (Expr.anno e' ty') with
-      | none => simp_all [bind, Option.bind]
-      | some synthTy =>
-        simp_all [bind, Option.bind]
-        subst h_eval
-        apply Check.sub_check
-        exact synthesize_sound h_syn
-
+-- -- 型の定義: unit型 と 関数型(A -> B)
+-- inductive Ty where
+  -- | unit : Ty
+  -- -- これは「関数」の型を作るための設計図です。
+  -- -- 「引数の型（Ty）」と「戻り値の型（Ty）」の2つを渡すと、新しい「関数型（Ty）」を作ってくれます。
+  -- | arrow : Ty → Ty → Ty
+-- deriving DecidableEq, Repr
 --
-termination_by (sizeOf e, 1)
-decreasing_by
-all_goals simp_wf
-all_goals subst_vars
-all_goals (
-    first
-    | (apply Prod.Lex.left
-       simp [sizeOf, Expr._sizeOf_1]
-       omega)
-    | (apply Prod.Lex.right
-       omega))
-
-
--- 型の一意性の証明（パターンマッチング形式）
-theorem synth_uniqueness {ctx : Context} {e : Expr} {ty1 ty2 : Ty}
-    (h1 : Synth ctx e ty1) (h2 : Synth ctx e ty2) : ty1 = ty2 :=
-  match h1, h2 with
-
--- 1. 変数のケース
-| .var_synth h1l, .var_synth h2l => by
-      rw [h1l] at h2l
-      injection h2l
-
--- 2. アノテーションのケース
-| .anno_synth _, .anno_synth _ =>
-      rfl
-
--- 3. 関数適用のケース（ここが再帰！）
-| .app_synth h1f h1a, .app_synth h2f h2a => by
-      -- 🌟 自分自身を再帰呼び出しして、関数の型が一致することを導く
-      -- 引数の h1f は元の h1 よりも構造的に小さいため、停止性が保証される
-      have h_eq_func := synth_uniqueness h1f h2f
-      -- (a → ty1) = (a_new → ty2) ならば ty1 = ty2
-      injection h_eq_func
-
-end
+-- -- 項の定義 [cite: 53]
+-- inductive Expr where
+  -- | unit : Expr -- ()
+  -- | var : String → Expr -- 変数 x
+  -- -- 理論での姿: ラムダ抽象 $\lambda x. e$ （関数の定義）
+  -- -- 関数を作るための設計図です。
+  -- -- 1つ目の引数に「変数の名前（String）」、2つ目の引数に「関数の処理内容（Expr）」を渡すと、新しい「関数（Expr）」を作ってくれます。
+  -- | lam : String → Expr → Expr -- ラムダ抽象 λx. e
+  -- -- 理論での姿: 関数適用 $e_1\; e_2$ （関数の呼び出し・実行）
+  -- -- 解説: 関数を呼び出すための設計図です。
+  -- -- 1つ目の引数に「実行したい関数（Expr）」、2つ目に「渡す引数（Expr）」を渡すと、「関数を呼び出した結果（Expr）」を作ってくれます。
+  -- -- 具体例: 関数 $f$ に引数 $x$ を渡す処理は、Expr.app (Expr.var "f") (Expr.var "x") と表現します。
+  -- | app : Expr → Expr → Expr -- 関数適用 e1 e2
+  -- -- 理論での姿: 型アノテーション $(e : A)$解説: プログラムに「この項の型はこれだよ！」と明記するための設計図です。
+  -- -- 双方向型付けにおいて、「合成（推論）モード」と「検査モード」を切り替えるための超重要パーツです。
+  -- -- 1つ目に「中身の項（Expr）」、2つ目に「指定する型（Ty）」を渡します。
+  -- -- 具体例: Expr.anno Expr.unit Ty.unit と書くと、$( () : \text{unit} )$ という、型が明記された項になります。
+  -- | anno : Expr → Ty → Expr -- 型アノテーション (e : A)
+--
+-- -- 文脈は (変数名, 型) のリスト
+-- def Context := List (String × Ty)
+--
+-- -- 文脈から変数を探す
+-- def Context.lookup (ctx : Context) (name : String) : Option Ty :=
+  -- ctx.findSome? (λ (n, ty) => if n == name then some ty else none)
+--
+  -- mutual
+--
+-- -- 型合成 (Synthesis: e ⇒ A)
+-- -- (6) 型等価規則と方向転換（Sub / Anno）について和訳
+-- -- (6) 最後に、型等価規則 TypeEq について考える。型割り当ての前提 $\Gamma \vdash e : A$ と結論 $\Gamma \vdash e : B$ が同一（$A$ と $B$ が完全に等しい）である場合、この同一の前提を複製することで、双方向システムにおいてそれぞれに異なる方向（モード）を与えることができる 。
+-- -- (1) 結論を合成とし、前提を検査とするか、
+-- -- (2) 結論を検査とし、前提を合成とするか、である 。
+-- -- 選択肢(1)は実装できない。結論が $B$ を合成するということは $B$ が入力ではないことを意味し、$B$ が分からないということは検査のための $A$ も分からないからである 。
+-- -- 選択肢(2)は機能する。結論において既知の $B$ に対して $e$ を検査したい場合、まず $e$ が型 $A$ を合成し、次に $A = B$ であることを検証すればよい 。
+-- -- Sub$\Leftarrow$（方向転換）も Anno$\Rightarrow$（アノテーション）も、プログラムの実行上の機能には結びついていない 。
+-- -- さらに、これらには対称性がある。
+-- -- Sub$\Leftarrow$ は「検査の結論」から「合成の前提」へと移行し、Anno$\Rightarrow$ は「合成の結論」から「検査の前提」へと移行するからである 。
+--
+-- def synthesize (ctx : Context) : Expr → Option Ty
+    -- | .var x => ctx.lookup x
+     -- -- | .anno e ty => if (check ctx e ty).isSome then some ty else none
+    -- | .anno e ty => do
+        -- check ctx e ty -- 失敗(none)ならここで自動的に return none される
+        -- return ty -- 成功したら ty を返す (some ty になる)
+--
+    -- -- 【除去則 = 合成】 →E⇒
+-- --     (5) 関数型の除去則 →E において、主判定（principal judgment）となるのは前提 $\Gamma \vdash e_1 : A \to B$ である 。
+-- --     なぜなら、その前提がまさに除去される結合子（$\to$）を含んでいるからだ 。
+-- --     我々はこの判定を合成（synthesize）モードにする 。
+-- --     この選択は我々の「レシピ」が示唆するものであり、うまく機能する。
+-- --     もし $e_1$ が $A \to B$ を合成できれば、$A$ が得られるので、引数 $e_2$ を $A$ で検査できる（したがって、このルールは $e_2$ が型を合成できない場合でも機能する）。
+-- --     また $B$ も得られるので、結論において $B$ を合成することができる 。
+-- -- （※前提の $e_1$ を検査モードにすることも可能ではあるが、その場合は引数 $e_2$ が合成モードでなければならず、結論も検査モードになる。詳細は6.5.1節を参照 。）
+--
+    -- | .app e1 e2 => do
+        -- -- 1. e1 を合成し、結果が arrow 型なら a と b に分解。それ以外なら `none` を返す
+        -- let .arrow a b ← synthesize ctx e1 | none
+--
+        -- -- 2. e2 を a で検査。失敗したらここで自動終了
+        -- check ctx e2 a
+--
+        -- -- 3. 全て成功したら b を返す
+        -- return b
+    -- | .unit | .lam .. => none
+--
+-- -- 型検査 (Checking: e ⇐ A)
+-- def check (ctx : Context) : Expr → Ty → Option Unit
+    -- -- 【導入則 = 検査】 unitI⇐
+    -- -- (3) Unitの導入則
+    -- -- unitI は検査（checks）モードとする。
+    -- -- 本論文の現時点では、内部の一貫性を優先する。
+    -- -- つまり、() を検査することは、（次に議論する）関数型の導入則や、直積型（ペア）の導入則と一貫しているからである 。
+--
+    -- | .unit, .unit => some ()
+--
+    -- -- 【導入則 = 検査】 →I⇐
+-- --     (4) 関数型（Arrow）の導入則 →I は検査モードとする。
+-- -- この決定には明確な動機がある。$\lambda x.e$ に対して
+-- --  $A_1 \to A_2$ を合成しようとすると、
+-- --  本体 $e$ の型も合成しなければならなくなる 。
+-- --  これには2つの問題がある。
+-- -- 第一に、本体が合成することを要求すると、本体が「検査はできるが合成はできない」ようなラムダ式を処理するために、もう一つ別のルールが必要になってしまう 。
+-- -- 第二に、$A_1 \to A_2$ を合成している最中は、まだ $A_1$ が何であるか分かっていないため、文脈を $\Gamma, x : A_1$ と拡張することができない 。（後で解決するためのプレースホルダーを文脈に入れる仕組みは第5章で述べる 。）
+-- -- 結論を検査モードにすれば、すでに $A_2$ が分かっているため、前提でも $e$ をチェックすればよい 。
+--
+    -- | .lam x body, .arrow a1 a2 =>
+        -- check ((x, a1) :: ctx) body a2
+--
+    -- -- 【方向転換】 Sub⇐
+    -- -- 合成と検査の境界線。
+    -- | e, targetTy => do
+        -- -- 1. e から型を合成する (失敗した場合は自動的に none が返って終了)
+        -- let synthTy ← synthesize ctx e
+--
+        -- -- 2. 合成された型 (synthTy) と目標型 (targetTy) が一致するか判定
+        -- if synthTy == targetTy then
+            -- return ()
+        -- else
+            -- none
+-- end
+--
+-- -- メモ1
+-- -- 具体例を使って、もし「ラムダ式が型を合成する」というルールを作ってしまったらどうなるか、シミュレーションしてみましょう。
+-- -- ❌ もしラムダ式を「合成モード（$\Rightarrow$）」にしたら？ラムダ式 \x. e 全体の型（$A \to B$）を合成（推論）したいとします 。
+-- -- そのためには、中身の処理である本体 e の型 $B$ も合成できなければなりません 。ここで、2つのパターンのラムダ式を考えてみます。
+-- -- パターン1：本体が合成できる場合例：\x. x
+-- -- 本体は変数 x です。変数は文脈から型を引っ張ってくる（合成する）ことができるので、このラムダ式は型を合成できそうです。
+-- -- パターン2：本体は合成できないが、検査ならできる場合例：\x. ()本体は ()（unit型の値）です。これまでの設計で、() は「外から目標型（unit）を与えられたときにだけOKを出す」という検査モード専用のルールにしていましたよね。
+--
+-- -- つまり、本体 () は単独では型を合成できません。するとどうなるでしょう？
+-- -- パターン1を処理するためのルールに加えて、パターン2のような「本体が合成できず行き詰まってしまうラムダ式」を救済するために、
+-- -- 「本体が検査モードならOKとするルール」をもう一つ別に追加で作らなければならなくなります 。
+-- -- ⭕ だから「検査モード（$\Leftarrow$）」にするルールの数が増えるのは、美しくありませんし、実装も複雑になります。
+-- -- そこで、Pfenningのレシピでは、ラムダ式全体を最初から**「検査モード（$\Leftarrow$）」**に固定してしまいます 。
+-- -- ラムダ式は、必ず外側から「君は $A \to B$ という型になりなさい」と目標を与えられます。
+-- -- 目標型が最初から分かっているので、本体 e に対して「君は $B$ という型になりなさい」と、そのまま目標を引き継いで検査させることができます 。
+-- -- これなら、本体が x であろうと () であろうと、「目標型を与えて検査する」というたった1つのルールで、すべてのラムダ式を処理できるようになるのです 。
+--
+-- -- 💡 コーチのまとめこの一文は、「部品（本体）の特性に振り回されてルールを増やしてしまうくらいなら、
+-- -- 最初から親（ラムダ式全体）を検査モードにして、目標型を上から下へ流し込んだほうが、ルールが1つで済んでスマートだよね」という設計思想を説明しています。\
+--
+--
+-- -- メモ2
+-- -- この部分は、双方向型付けの**「一番オイシイところ（2つのモードがどう連携するか）」**を語っている部分です。
+-- -- 専門用語が多くて難しく見えますが、日常の「受付での本人確認」に例えると、驚くほどスッキリ理解できます！
+-- -- まずは言葉のイメージを固めましょう。
+-- -- 合成（$\Rightarrow$）＝ 本人に「あなたは誰ですか？」と聞いて、IDカード（型）を出してもらうこと。
+-- -- 検査（$\Leftarrow$）＝ 受付で「あなたは〇〇さん（目標の型）ですね？」と指名して、合っているか確認すること。
+--
+-- -- 1. なぜ「選択肢(1)」はダメで、「選択肢(2)」はうまくいくのか？論文では、ルールを切り替えるときに「2つの選択肢」があったと言っています。
+-- -- ❌ 選択肢(1)：結論が「合成」で、前提が「検査」状況: 受付で「あなたの名前（型）を教えてください」と聞かれている（結論が合成）。
+-- -- 処理: その人の名前を推測するために、「とりあえず、あなたが『田中さん』かどうか確認（検査）させて！」と言う。
+-- -- ダメな理由: 「いや、なんで急に田中さんが出てきたの？基準がないよ！」となりますよね。
+-- -- 目標（ターゲット）がないのに検査はできないので、システムが立ち往生してしまいます。
+--
+-- -- ⭕ 選択肢(2)：結論が「検査」で、前提が「合成」状況: 受付で「あなたは『田中さん』ですね？」と確認されている（結論が検査）。
+-- -- 処理: でも、パッと見で田中さんか分からない。そこで「とりあえず、あなたのIDカード（型）を見せてください」と頼む（前提が合成）。
+-- -- 成功する理由: IDカードを見て「田中（合成した型 $A$）」と書いてあれば、受付のリスト「田中（目標の型 $B$）」と見比べて、「$A = B$ だからヨシ！」と確認できます。
+-- -- これが、コードで実装した guard (synthTy == targetTy) の正体です。**「検査で迷ったら、相手にIDを出させて（合成）、合っているか見比べる」**という超実践的なテクニックだったのです。
+--
+-- -- 2. 「Sub（方向転換）」と「Anno（アノテーション）」の美しい対称性
+-- -- さらに論文は、このシステムには「美しい対称性（表と裏の関係）」があると言っています。
+-- -- 🔄 表ルート：Sub（方向転換）情報の流れ: 「検査」から「合成」へどういう時使う？:
+-- --  「君は $B$ 型になりなさい！（検査）」と命令されたけど、その部品自体にどうやって検査すればいいかルールがない時。
+-- --  アクション: 「じゃあ逆に、君自身は自分が何型だと思う？（合成）」と聞き出して、目標と一致するか照らし合わせます。
+-- -- 🔄 裏ルート：Anno（型アノテーション）情報の流れ: 「合成」から「検査」へどういう時使う？:
+-- -- 「君は何型なの？（合成）」と聞いたけど、複雑なプログラムすぎて自分では型を答えられない時。
+-- -- アクション: プログラマが付けた名札 (e : A) を見て、「なるほど、君は $A$ 型と主張しているんだね。
+-- -- じゃあ、中身が本当に $A$ 型のルールを守っているかチェック（検査）させてもらうよ」と動きます。
+--
+-- -- 💡 コーチのまとめ要するに、この段落が言いたかったのはこういうことです。
+-- -- 「双方向型付けのシステムは、合成（抽出）と検査（確認）の2つのモードが、お互いに助け合うようにできている」
+-- -- 目標があるのに確認方法が分からない時 ➡️ 対象自身に型を出させて比較する（Sub: 方向転換）
+-- -- 目標がないのに型を聞き出さなきゃいけない時 ➡️ プログラマのメモ（名札）を信じて、それを目標として中身を確認する（Anno: アノテーション）
+-- -- この「困ったら逆のモードにジャンプして助けを求める」という仕組みがあるおかげで、
+-- -- 型チェッカーは行き止まりにならずに、どんなプログラムでもスルスルと型を判定していけるのです！
+--
+-- -- テスト1: 空の文脈で、() が unit型かチェックする
+-- -- 期待される結果: some () （成功！）
+-- #eval check [] Expr.unit Ty.unit
+--
+-- -- テスト2: 空の文脈で、() が (unit -> unit)型かチェックする
+-- -- 期待される結果: none （型エラー！）
+-- #eval check [] Expr.unit (Ty.arrow Ty.unit Ty.unit)
+--
+-- -- テスト3: 恒等関数 (λx. x) が (unit -> unit)型かチェックする
+-- -- 期待される結果: some () （成功！）
+-- #eval check [] (Expr.lam "x" (Expr.var "x")) (Ty.arrow Ty.unit Ty.unit)
+--
+-- -- テスト4: (λx. x) () という関数適用が unit型を合成するか？
+-- -- 期待される結果: some Ty.unit
+-- def idFunc := Expr.anno (Expr.lam "x" (Expr.var "x")) (Ty.arrow Ty.unit Ty.unit)
+-- #eval synthesize [] (Expr.app idFunc Expr.unit)
+--
+--
+-- -- 【1. 数学的な推論規則（仕様）の定義】
+-- -- 合成（Synth: Γ ⊢ e ⇒ A）と 検査（Check: Γ ⊢ e ⇐ A）
+--
+-- mutual
+-- -- 合成モードの規則 (Γ ⊢ e ⇒ A)
+-- inductive Synth : Context → Expr → Ty → Prop where
+    -- -- [Var⇒] 文脈から型が見つかれば、変数はその型を合成する
+    -- | var_synth {ctx : Context} {x : String} {ty : Ty} :
+        -- Context.lookup ctx x = some ty →
+        -- Synth ctx (Expr.var x) ty
+--
+    -- -- [Anno⇒] アノテーションの中身が型Aとして検査をパスすれば、型Aを合成する
+    -- | anno_synth {ctx : Context} {e : Expr} {ty : Ty} :
+        -- Check ctx e ty →
+        -- Synth ctx (Expr.anno e ty) ty
+--
+    -- -- [→E⇒] 関数適用 (e1 e2)
+    -- | app_synth {ctx : Context} {e1 e2 : Expr} {a b : Ty} :
+        -- Synth ctx e1 (Ty.arrow a b) → -- e1 が A → B を合成し
+        -- Check ctx e2 a → -- e2 が A で検査できるなら
+        -- Synth ctx (Expr.app e1 e2) b -- 全体は B を合成する
+--
+-- -- 検査モードの規則 (Γ ⊢ e ⇐ A)
+-- inductive Check : Context → Expr → Ty → Prop where
+    -- -- [UnitI⇐] () は unit型として検査できる
+    -- | unit_check {ctx : Context} :
+        -- Check ctx Expr.unit Ty.unit
+--
+    -- -- [→I⇐] ラムダ抽象 (λx. e) は A → B として検査できる
+    -- | lam_check {ctx : Context} {x : String} {body : Expr} {a1 a2 : Ty} :
+        -- Check ((x, a1) :: ctx) body a2 → -- x:A を文脈に追加して本体を B で検査
+        -- Check ctx (Expr.lam x body) (Ty.arrow a1 a2)
+--
+    -- -- [Sub⇐] 方向転換: もし e が型 A を合成でき、かつ目標型も A なら、検査成功
+    -- | sub_check {ctx : Context} {e : Expr} {ty : Ty} :
+        -- Synth ctx e ty →
+        -- Check ctx e ty
+-- end
+--
+--
+-- -- 【2. 健全性（Soundness）の定理】
+-- -- 「プログラム（def）が計算で成功を返したら、数学的ルール（Prop）を満たす」という証明。
+-- -- 項（Expr）の構造に関する帰納法で証明します。
+--
+-- theorem sizeOf_app_lt_left (e1 e2 : Expr) : sizeOf e1 < sizeOf (Expr.app e1 e2) := by
+  -- simp [sizeOf, Expr._sizeOf_1]
+  -- omega
+--
+-- theorem sizeOf_app_lt_right (e1 e2 : Expr) : sizeOf e2 < sizeOf (Expr.app e1 e2) := by
+  -- simp [sizeOf, Expr._sizeOf_1]
+  -- omega
+--
+  -- mutual
+  -- -- 合成の健全性証明
+-- theorem synthesize_sound {ctx : Context} {e : Expr} {ty : Ty}
+    -- (h_eval : synthesize ctx e = some ty) : Synth ctx e ty := by
+    -- cases h_e_eq : e with
+--
+    -- | unit =>
+      -- rw [h_e_eq] at h_eval
+      -- unfold synthesize at h_eval
+      -- contradiction
+--
+    -- | var x =>
+      -- rw [h_e_eq] at h_eval
+      -- apply Synth.var_synth
+      -- unfold synthesize at h_eval
+      -- exact h_eval
+--
+    -- | lam x body =>
+      -- rw [h_e_eq] at h_eval
+      -- unfold synthesize at h_eval
+      -- contradiction
+--
+    -- | app e1 e2 =>
+      -- rw [h_e_eq] at h_eval
+      -- revert h_eval
+      -- unfold synthesize
+      -- cases h_syn1 : synthesize ctx e1 with
+      -- | none => simp_all [bind, Option.bind]
+      -- | some ty1 =>
+        -- cases ty1 with
+        -- | unit => simp_all [bind, Option.bind]
+        -- | arrow a b =>
+          -- cases h_chk2 : check ctx e2 a with
+          -- | none => simp_all [bind, Option.bind]
+          -- | some _ =>
+            -- simp_all [bind, Option.bind]
+            -- intro h_eq_eval
+            -- cases h_eq_eval
+            -- apply Synth.app_synth
+            -- · exact synthesize_sound h_syn1
+            -- · exact check_sound h_chk2
+--
+    -- | anno e' ty' =>
+      -- rw [h_e_eq] at h_eval
+      -- revert h_eval
+      -- unfold synthesize
+      -- cases h_chk : check ctx e' ty' with
+      -- | none => simp [bind, Option.bind]
+      -- | some _ =>
+        -- simp [bind, Option.bind]
+        -- intro h_eq_eval
+        -- cases h_eq_eval
+        -- apply Synth.anno_synth
+        -- exact check_sound h_chk
+--
+-- -- //
+-- termination_by (sizeOf e, 0)
+-- decreasing_by
+-- all_goals simp_wf
+-- ·
+    -- subst_vars
+    -- left
+    -- exact sizeOf_app_lt_left e1 e2
+-- ·
+    -- subst_vars
+    -- left
+    -- exact sizeOf_app_lt_right e1 e2
+-- ·
+    -- subst_vars
+    -- left
+    -- simp [sizeOf, Expr._sizeOf_1]
+    -- omega
+--
+--
+-- -- 検査の健全性証明
+-- theorem check_sound {ctx : Context} {e : Expr} {ty : Ty}
+    -- (h_eval : check ctx e ty = some ()) : Check ctx e ty := by
+    -- cases h_e_eq : e with
+--
+    -- | unit =>
+      -- rw [h_e_eq] at h_eval
+      -- cases ty with
+      -- | unit => exact Check.unit_check
+      -- | arrow a b =>
+        -- unfold check at h_eval
+        -- simp_all [synthesize, bind, Option.bind]
+--
+    -- | var x =>
+      -- rw [h_e_eq] at h_eval
+      -- unfold check at h_eval
+      -- cases h_syn : synthesize ctx (Expr.var x) with
+      -- | none => simp_all [bind, Option.bind]
+      -- | some synthTy =>
+        -- simp_all [bind, Option.bind]
+--
+        -- subst h_eval
+--
+        -- apply Check.sub_check
+        -- exact synthesize_sound h_syn
+--
+    -- | lam x body =>
+      -- rw [h_e_eq] at h_eval
+      -- cases ty with
+      -- | unit =>
+        -- unfold check at h_eval
+        -- simp_all [synthesize, bind, Option.bind]
+      -- | arrow a1 a2 =>
+        -- apply Check.lam_check
+        -- unfold check at h_eval
+        -- exact check_sound h_eval
+--
+    -- | app e1 e2 =>
+      -- rw [h_e_eq] at h_eval
+      -- unfold check at h_eval
+      -- cases h_syn : synthesize ctx (Expr.app e1 e2) with
+      -- | none => simp_all [bind, Option.bind]
+      -- | some synthTy =>
+        -- simp_all [bind, Option.bind]
+        -- subst h_eval
+        -- apply Check.sub_check
+        -- exact synthesize_sound h_syn
+--
+    -- | anno e' ty' =>
+      -- rw [h_e_eq] at h_eval
+      -- unfold check at h_eval
+      -- cases h_syn : synthesize ctx (Expr.anno e' ty') with
+      -- | none => simp_all [bind, Option.bind]
+      -- | some synthTy =>
+        -- simp_all [bind, Option.bind]
+        -- subst h_eval
+        -- apply Check.sub_check
+        -- exact synthesize_sound h_syn
+--
+-- --
+-- termination_by (sizeOf e, 1)
+-- decreasing_by
+-- all_goals simp_wf
+-- all_goals subst_vars
+-- all_goals (
+    -- first
+    -- | (apply Prod.Lex.left
+       -- simp [sizeOf, Expr._sizeOf_1]
+       -- omega)
+    -- | (apply Prod.Lex.right
+       -- omega))
+--
+--
+-- -- 型の一意性の証明（パターンマッチング形式）
+-- theorem synth_uniqueness {ctx : Context} {e : Expr} {ty1 ty2 : Ty}
+    -- (h1 : Synth ctx e ty1) (h2 : Synth ctx e ty2) : ty1 = ty2 :=
+  -- match h1, h2 with
+--
+-- -- 1. 変数のケース
+-- | .var_synth h1l, .var_synth h2l => by
+      -- rw [h1l] at h2l
+      -- injection h2l
+--
+-- -- 2. アノテーションのケース
+-- | .anno_synth _, .anno_synth _ =>
+      -- rfl
+--
+-- -- 3. 関数適用のケース（ここが再帰！）
+-- | .app_synth h1f h1a, .app_synth h2f h2a => by
+      -- -- 🌟 自分自身を再帰呼び出しして、関数の型が一致することを導く
+      -- -- 引数の h1f は元の h1 よりも構造的に小さいため、停止性が保証される
+      -- have h_eq_func := synth_uniqueness h1f h2f
+      -- -- (a → ty1) = (a_new → ty2) ならば ty1 = ty2
+      -- injection h_eq_func
+--
+-- end

@@ -70,6 +70,21 @@ inductive Value : Term → Prop where
 | lam :
     ∀ t,
     Value (ƛ t)
+/--
+A pair is a value when both components are values.
+
+推論規則：
+
+Value v₁    Value v₂
+--------------------
+Value (v₁, v₂)
+-/
+| pair :
+    ∀ v₁ v₂,
+    Value v₁ →
+    Value v₂ →
+    Value (v₁, v₂)
+
 
 ------------------------------------------------------------
 -- Small-step Evaluation
@@ -182,6 +197,46 @@ v t₂ ⟶ v t₂'
       (v □ t₂)
       (v □ t₂')
 
+| pair₁
+    {t₁ t₁' t₂ : Term}
+    :
+    Step t₁ t₁' →
+    Step (t₁, t₂) (t₁', t₂)
+
+| pair₂
+    {v₁ t₂ t₂' : Term}
+    :
+    Value v₁ →
+    Step t₂ t₂' →
+    Step (v₁, t₂) (v₁, t₂')
+
+| proj1₁
+    {t t'}
+    :
+    Step t t' →
+    Step (proj1 t) (proj1 t')
+
+| proj1Pair
+    {v₁ v₂}
+    :
+    Value v₁ →
+    Value v₂ →
+    Step (proj1 (v₁, v₂)) v₁
+
+| proj2₁
+    {t t'}
+    :
+    Step t t' →
+    Step (proj2 t) (proj2 t')
+
+| proj2Pair
+    {v₁ v₂}
+    :
+    Value v₁ →
+    Value v₂ →
+    Step (proj2 (v₁, v₂)) v₂
+
+
 ------------------------------------------------------------
 -- Notation
 ------------------------------------------------------------
@@ -208,6 +263,10 @@ theorem value_not_step
   cases hv with
   | lam =>
       cases hs
+  | pair v₁ v₂ hv₁ hv₂ =>
+      cases hs
+      · exact value_not_step hv₁ ‹_›
+      · exact value_not_step hv₂ ‹_›
 ------------------------------------------------------------
 -- Examples
 ------------------------------------------------------------

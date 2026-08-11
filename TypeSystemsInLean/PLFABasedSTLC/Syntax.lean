@@ -76,6 +76,9 @@ inductive Term where
 | var : Index → Term
 | lam : Term → Term
 | ap  : Term → Term → Term
+| pair  : Term → Term → Term
+| proj1  : Term → Term
+| proj2  : Term → Term
 deriving DecidableEq, Repr
 
 open Term
@@ -86,6 +89,8 @@ prefix:90 "#" => Term.var
 prefix:60 "ƛ " => Term.lam
 /-- Application notation (t □ u). -/
 infixl:70 " □ " => Term.ap
+/-- Pair notation (t, u). -/
+notation "(" t ", " u ")" => Term.pair t u
 
 
 end STLC

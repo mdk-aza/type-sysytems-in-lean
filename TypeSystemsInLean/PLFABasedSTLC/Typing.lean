@@ -58,16 +58,31 @@ A type is either
 
 * 基本型
 * 関数型
+* 積型
+の3種類からなる。
 
-の2種類からなる。
--/
+対象言語
+STLC + pair
+
+メタ言語
+Lean
+
+型の話をするときは対象言語の型か、メタ言語の型か
+ex Tyはメタ言語の型、項
+対象言語の型はbase
+arrは2引数の型構成子
+Leanでは右結合
+  -/
+
+
 inductive Ty where
 | base : Ty
 | arr : Ty → Ty → Ty
+| prod : Ty → Ty → Ty
 deriving DecidableEq, Repr
 
 infixr:60 " ⇒ " => Ty.arr
-
+infixr:70 " × " => Ty.prod
 ------------------------------------------------------------
 -- Typing Context
 ------------------------------------------------------------
@@ -323,6 +338,59 @@ Inference rule
     HasType Γ t (A ⇒ B) →
     HasType Γ u A →
     HasType Γ (t □ u) B
+/-
+直積
+
+推論規則
+
+    Γ ⊢ t1 : A, Γ ⊢ t2 : B
+    ----------------------
+    Γ ⊢ (t₁, t₂): A × B
+
+
+ 符号化
+ 対象言語とメタ言語を
+ shallow encoding 近いものを使う 危険　同じ意味を使うとは限らない
+ deep embedding よそものを使う
+ HOASなどはshallow
+-/
+| pair
+    {Γ : Context}
+    {t1 t2 : Term}
+    {A B : Ty}
+    :
+    HasType Γ t1 A →
+    HasType Γ t2 B →
+    HasType Γ (t1, t2) (A × B)
+
+/-
+推論規則
+
+    Γ ⊢ t : A × B
+    --------------------
+    Γ ⊢ t.1 : A
+-/
+| proj1Ty
+    {Γ : Context}
+    {t : Term}
+    {A B : Ty}
+    :
+    HasType Γ t (A × B) →
+    HasType Γ (proj1 t) A
+/-
+推論規則
+
+    Γ ⊢ t : A × B
+    --------------------
+    Γ ⊢ t.2 : B
+-/
+| proj2Ty
+    {Γ : Context}
+    {t : Term}
+    {A B : Ty}
+    :
+    HasType Γ t (A × B) →
+    HasType Γ (proj2 t) B
 
 ------------------------------------------------------------
 -- Notation

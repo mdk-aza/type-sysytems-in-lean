@@ -278,6 +278,33 @@ def rename (ρ : Renaming) : Term → Term
     -- 独立にリネームを適用する。
     .ap (rename ρ t)
         (rename ρ u)
+| .pair t1 t2 =>
+    -- Rename both components independently.
+    --
+    -- ペアでは左右の部分項へ
+    -- 独立にリネームを適用する。
+    -- ペアは binder を導入しないので、
+    -- renaming は拡張しない。
+    .pair (rename ρ t1)
+          (rename ρ t2)
+
+| .proj1 t =>
+    -- Rename the projected term.
+    --
+    -- 第一射影では、
+    -- 射影対象の部分項へリネームを適用する。
+    -- proj1 は binder を導入しないので、
+    -- renaming は拡張しない。
+    .proj1 (rename ρ t)
+
+| .proj2 t =>
+    -- Rename the projected term.
+    --
+    -- 第二射影では、
+    -- 射影対象の部分項へリネームを適用する。
+    -- proj2 は binder を導入しないので、
+    -- renaming は拡張しない。
+    .proj2 (rename ρ t)
 
 ------------------------------------------------------------
 -- Notation
@@ -390,6 +417,15 @@ theorem rename_ids :
 
   | ap t u iht ihu =>
       simp [rename, iht, ihu]
+
+  | pair t1 t2 ih1 ih2 =>
+    simp [rename, ih1, ih2]
+
+  | proj1 t ih =>
+    simp [rename, ih]
+
+  | proj2 t ih =>
+    simp [rename, ih]
 
 /--
 Shifting commutes with extending a renaming.
@@ -538,5 +574,14 @@ theorem rename_comp :
 
   | ap t u iht ihu =>
       simp [rename, iht, ihu]
+
+  | pair t1 t2 ih1 ih2 =>
+    simp [rename, ih1, ih2]
+
+  | proj1 t ih =>
+    simp [rename, ih]
+
+  | proj2 t ih =>
+    simp [rename, ih]
 
 end STLC

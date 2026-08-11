@@ -182,6 +182,27 @@ def subst (σ : Subst) : Term → Term
     -- 独立に置換を適用する。
     .ap (subst σ t)
         (subst σ u)
+| .pair t1 t2 =>
+    -- Apply substitution independently to both components.
+    --
+    -- ペアでは左右の部分項へ
+    -- 同じ置換を独立に適用する。
+    -- pair は binder を導入しないので、
+    -- substitution は拡張しない。
+    .pair (subst σ t1)
+          (subst σ t2)
+| .proj1 t =>
+    -- Apply substitution to the projected term.
+    --
+    -- 第一射影は binder を導入しないので、
+    -- substitution をそのまま部分項へ適用する。
+  .proj1 (subst σ t)
+| .proj2 t =>
+    -- Apply substitution to the projected term.
+    --
+    -- 第二射影は binder を導入しないので、
+    -- substitution をそのまま部分項へ適用する。
+  .proj2 (subst σ t)
 
 /--
 Apply a renaming to every term produced by a substitution.

@@ -116,6 +116,15 @@ theorem subst_ids :
   | ap t u iht ihu =>
       simp [subst, iht, ihu]
 
+  | pair t1 t2 ih1 ih2 =>
+    simp [subst, ih1, ih2]
+
+  | proj1 t ih =>
+    simp [subst, ih]
+
+  | proj2 t ih =>
+    simp [subst, ih]
+
 
 ------------------------------------------------------------
 -- Interaction between renaming and substitution
@@ -201,6 +210,16 @@ theorem rename_subst :
       intro σ ρ
       simp [subst, rename, iht, ihu]
 
+  | pair t1 t2 ih1 ih2 =>
+    intro σ ρ
+    simp [subst, rename, ih1, ih2]
 
+  | proj1 t ih =>
+    intro σ ρ
+    simp [subst,rename, ih]
+
+  | proj2 t ih =>
+    intro σ ρ
+    simp [subst, rename, ih]
 
 end STLC

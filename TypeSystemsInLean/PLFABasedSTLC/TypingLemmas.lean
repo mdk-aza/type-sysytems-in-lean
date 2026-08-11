@@ -213,6 +213,34 @@ theorem rename_preserves
         (ih₁ hρ)
         (ih₂ hρ)
 
+  | pair ht₁ ht₂ ih₁ ih₂ =>
+      -- Rename both components independently.
+      --
+      -- ペアでは
+      -- 左右の部分項へ独立にリネームを適用する。
+      -- pair は binder を導入しないので、
+      -- renaming は拡張しない。
+      simp [rename]
+      exact HasType.pair
+        (ih₁ hρ)
+        (ih₂ hρ)
+
+  | proj1Ty ht ih =>
+      -- Rename the projected term.
+      --
+      -- 第一射影は binder を導入しないので、
+      -- renaming はそのまま部分項へ適用する。
+      simp [rename]
+      exact HasType.proj1Ty (ih hρ)
+
+  | proj2Ty ht ih =>
+      -- Rename the projected term.
+      --
+      -- 第二射影は binder を導入しないので、
+      -- renaming はそのまま部分項へ適用する。
+      simp [rename]
+      exact HasType.proj2Ty (ih hρ)
+
 
 /--
 Shifting preserves typing.

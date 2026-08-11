@@ -193,4 +193,19 @@ theorem subst_preserves
       exact HasType.ap
         (ih₁ hσ)
         (ih₂ hσ)
+
+  | pair ht1 ht2 ih1 ih2 =>
+      simp [subst]
+      exact HasType.pair
+        (ih1 hσ)
+        (ih2 hσ)
+
+  | proj1Ty t ih =>
+      simp [subst]
+      exact HasType.proj1Ty (ih hσ)
+
+  | proj2Ty t ih =>
+      simp [subst]
+      exact HasType.proj2Ty (ih hσ)
+
   end STLC

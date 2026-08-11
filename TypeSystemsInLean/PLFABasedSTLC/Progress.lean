@@ -90,13 +90,64 @@ theorem progress
           exact Progress.step (Step.app₁ hs)
 
       | done hv =>
+              cases pu with
+              | step hs =>
+                  exact Progress.step (Step.app₂ hv hs)
+
+              | done hv₂ =>
+                  cases hv with
+                  | lam body =>
+                      exact Progress.step (Step.beta hv₂)
+
+                  | pair v₁ v₂ hv₁ hv₂ =>
+                      -- A pair cannot have a function type.
+                      cases h₁
+    | pair h₁ h₂ ih₁ ih₂ =>
+        have pt := ih₁ hΓ
+        have pu := ih₂ hΓ
+
+        cases pt with
+        | step hs =>
+            exact Progress.step (Step.pair₁ hs)
+
+        | done hv₁ =>
           cases pu with
           | step hs =>
-              exact Progress.step (Step.app₂ hv hs)
+              exact Progress.step (Step.pair₂ hv₁ hs)
 
           | done hv₂ =>
-              cases hv with
-              | lam body =>
-                  exact Progress.step (Step.beta hv₂)
+              exact Progress.done (Value.pair _ _ hv₁ hv₂)
+
+     | proj1Ty h ih =>
+         have pt := ih hΓ
+
+         cases pt with
+         | step hs =>
+             exact Progress.step (Step.proj1₁ hs)
+
+         | done hv =>
+             cases hv with
+             | lam body =>
+                 -- A lambda cannot have a product type.
+                 cases h
+
+             | pair v₁ v₂ hv₁ hv₂ =>
+                 exact Progress.step (Step.proj1Pair hv₁ hv₂)
+
+     | proj2Ty h ih =>
+         have pt := ih hΓ
+
+         cases pt with
+         | step hs =>
+             exact Progress.step (Step.proj2₁ hs)
+
+         | done hv =>
+             cases hv with
+             | lam body =>
+                 -- A lambda cannot have a product type.
+                 cases h
+
+             | pair v₁ v₂ hv₁ hv₂ =>
+                 exact Progress.step (Step.proj2Pair hv₁ hv₂)
 
 end STLC
