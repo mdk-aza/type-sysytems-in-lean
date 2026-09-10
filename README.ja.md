@@ -38,7 +38,7 @@
   以下のような性質を証明する：
     - preservation（保存性）
     - progress（進行）
-    - 決定性（determinism）
+    - determinism（決定性）
     - soundness（健全性）
 
 - **研究基盤の構築**  
