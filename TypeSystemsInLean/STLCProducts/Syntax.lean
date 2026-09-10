@@ -86,6 +86,7 @@ open Term
 /-- Variable notation (#0, #1, ...). -/
 prefix:90 "#" => Term.var
 /-- Lambda notation (ƛ t). -/
+-- λに変更できる確認
 prefix:60 "ƛ " => Term.lam
 /-- Application notation (t □ u). -/
 infixl:70 " □ " => Term.ap

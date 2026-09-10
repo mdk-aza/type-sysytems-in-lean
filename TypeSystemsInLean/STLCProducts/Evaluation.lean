@@ -66,6 +66,12 @@ STLC では
     --------------
       Value (λ t)
 -/
+
+-- valueの扱い
+-- λ計算の場合
+-- 単独の場合、CVVは変数自体もValue
+-- プログラミング言語の場合
+-- 変数単独で評価する場合
 inductive Value : Term → Prop where
 | lam :
     ∀ t,
@@ -116,6 +122,14 @@ t' に変化する」
 評価戦略は
 Call-by-Value とする。
 -/
+
+-- 場合によっては、関数でかける Termを受け取って、Boolで返す
+-- 1ステップ計算が関数にできない、想定しているものが来ないため。部分関数でもかける。Lean
+-- Ocamlなどではタグ付けなどして、NaNを返すなどがある。
+-- 関数をかけるなら、それが一番楽。Evaluatorはたいていは関数ではかけない。
+
+
+-- 2引数の述語をSTEPという名前で帰納的に定義
 inductive Step : Term → Term → Prop where
 
 /--
@@ -144,6 +158,43 @@ inductive Step : Term → Term → Prop where
     Step
       ((ƛ t) □ v)
       (t⟦single v⟧)
+-- 命題論理→述語論理→帰納定義
+-- t = 0 + 1 * 2
+-- v = \x.x
+-- t [[ single v ]] = ?
+
+-- t = pair(0, 1) //Term pair
+-- t [[ single v ]] = subst (single v) t
+-- = pair(subst (single v) (var 0))(subst (single v) (var 1))
+-- = pair((single v) 0 , (single v) 1 )
+-- = pair(\x.x, 0)
+--  0 @ 1 @ 2 @ 3[[single v]]
+--  @ 0 @ 1 @ 2
+
+
+
+-- def single (v : Term) : Subst
+-- | 0     => v
+-- | n + 1 => #n
+
+-- def subst (σ : Subst) : Term → Term
+-- | .var x =>
+--      σ x
+-- | .pair t1 t2 =>
+    -- .pair (subst σ t1)
+          -- (subst σ t2)
+
+-- t = single v
+-- v = \x.x
+
+
+
+-- notation t "⟦" σ "⟧" => subst σ t
+
+-- abbrev Subst := Index → Term
+-- def subst (σ : Subst) : Term → Term
+
+
 
 /--
 Evaluate the function position.
@@ -236,6 +287,7 @@ v t₂ ⟶ v t₂'
     Value v₂ →
     Step (proj2 (v₁, v₂)) v₂
 
+-- end of inductive Step
 
 ------------------------------------------------------------
 -- Notation
@@ -252,6 +304,8 @@ Reduction notation.
 
 と書けるようにする。
 -/
+
+-- TODO Leanとかぶるので、別の記号を使わないと混乱するので、修正する
 infix:40 " ⟶ " => Step
 
 @[simp]

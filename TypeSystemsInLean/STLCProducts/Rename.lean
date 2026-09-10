@@ -403,13 +403,17 @@ PLFA Substitution 章の
 を保証する最も基本的な性質であり、
 後続のリネーム・置換に関する補題の出発点となる。
 -/
+
+-- 何に関するinductionがどうかが自明じゃないから、なのでここは人間が書かないといけない。
 theorem rename_ids :
     ∀ t : Term, t⟪ids⟫ = t := by
+  -- 最後に使うのは∀任意のtを使う
+  -- なぜ任意で書かないのか→存在のintroに決まっているのか
   intro t
   induction t with
   | var x =>
       rfl
-
+ -- 証明の日はこちらを題材に
   | lam t ih =>
       simp [rename]
       rw [ext_ids]
