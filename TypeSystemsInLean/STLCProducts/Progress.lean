@@ -48,7 +48,7 @@ inductive Progress (t : Term) : Prop where
 
 | step :
     ∀ {t'},
-    t ⟶ t' →
+    Step t t' →
     Progress t
 
 ------------------------------------------------------------

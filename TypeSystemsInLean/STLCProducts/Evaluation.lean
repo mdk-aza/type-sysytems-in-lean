@@ -302,8 +302,6 @@ Reduction notation.
 と書けるようにする。
 -/
 
--- -- TODO Leanとかぶるので、別の記号を使わないと混乱するので、修正する
--- infix:40 " ⟶ " => Step
 
 @[simp]
 theorem value_not_step

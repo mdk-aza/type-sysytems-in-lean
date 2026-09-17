@@ -21,7 +21,7 @@ inductive MultiStep : Term → Term → Prop where
 | refl :
     MultiStep t t
 | trans :
-    t ⟶ u →
+    Step t u →
     MultiStep u v →
     MultiStep t v
 
@@ -35,7 +35,7 @@ A term is in normal form if no evaluation rule applies.
 これ以上評価規則を適用できない項を表す。
 -/
 def Normal (t : Term) : Prop :=
-  ∀ u, ¬ (t ⟶ u)
+  ∀ u, ¬ (Step t u)
 
 /-
 A stuck term is a normal form that is not a value.

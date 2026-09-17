@@ -55,7 +55,7 @@ theorem preservation
     {t t' : Term}
     {A : Ty}
     (ht : HasType Γ t A)
-    (hs : t ⟶ t') :
+    (hs : Step t t') :
     HasType Γ t' A := by
 
   induction hs generalizing Γ A with
