@@ -88,4 +88,32 @@ inductive HasType :
       HasType Γ Δ u A →
       HasType Γ Δ (Term.ap t u) B
 
+
+
+example (A : Ty) :
+    HasType [] [] (ƛ #0) (A ⇒ A) := by
+  apply HasType.lam
+  apply HasType.var
+  exact Lookup.here
+
+
+example (A B : Ty) :
+    HasType [] [] (ƛ ƛ #1) (A ⇒ B ⇒ A) := by
+  apply HasType.lam
+  apply HasType.lam
+  apply HasType.var
+  exact Lookup.there Lookup.here
+
+example (A B : Ty) :
+    HasType [] [] (ƛ ƛ #0) (A ⇒ B ⇒ B) := by
+  apply HasType.lam
+  apply HasType.lam
+  apply HasType.var
+  exact Lookup.here
+
+example (A : Ty) (x : String) :
+    HasType [] [(x, A)] (Term.var (Var.free x)) A := by
+  apply HasType.fvar
+  exact FLookup.here
+
 end STLC
