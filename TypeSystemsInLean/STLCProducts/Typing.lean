@@ -149,6 +149,14 @@ lookup 関数ではなく、
 -/
 inductive Lookup : Context → Index → Ty → Prop where
 
+/-
+Context [base, (base ⇒ base), (base × base)]
+Index = 0
+Ty = base
+Lookup Context Index Ty : Prop
+Propが真偽で判定できる命題である
+-/
+
 /--
 The most recently bound variable.
 
@@ -240,6 +248,8 @@ of the Simply Typed Lambda Calculus.
 
 これは STLC の中心となる
 型付け関係である。
+型判断、jugdement
+  -/
 -/
 inductive HasType : Context → Term → Ty → Prop where
 
